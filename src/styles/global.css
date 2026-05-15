@@ -1,0 +1,89 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  background: #f8fbff;
+  color: #1c2533;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+.app-shell {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 48px 24px;
+}
+
+.hero {
+  padding: 48px 0;
+}
+
+.eyebrow {
+  margin: 0 0 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: #2f5bed;
+  font-size: 0.8rem;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  line-height: 1.05;
+}
+
+.hero p {
+  max-width: 760px;
+  line-height: 1.8;
+  margin-top: 18px;
+}
+
+.section-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  margin: 32px 0;
+}
+
+.status-card,
+.card {
+  padding: 24px;
+  border-radius: 18px;
+  background: white;
+  box-shadow: 0 20px 40px rgba(30, 45, 80, 0.08);
+}
+
+.status-card p {
+  margin: 0 0 10px;
+}
+
+.card h3 {
+  margin: 0 0 14px;
+}
+
+.card p {
+  margin: 0 0 12px;
+  line-height: 1.7;
+}
+
+.focus {
+  font-weight: 700;
+  color: #3a4a6a;
+}
+
+.callout {
+  padding: 32px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #eaf2ff 0%, #f2f7ff 100%);
+  border: 1px solid rgba(71, 118, 248, 0.12);
+}
+
+.callout h2 {
+  margin-top: 0;
+}

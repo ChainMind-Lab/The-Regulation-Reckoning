@@ -1,0 +1,28 @@
+{
+  "name": "the-regulation-reckoning",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A research-driven open-source publication and analytics platform focused on global crypto regulation and ecosystem resilience.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext .ts,.tsx",
+    "format": "prettier --check ."
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "stellar-sdk": "^10.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "eslint": "^9.0.0",
+    "eslint-plugin-react": "^7.33.2",
+    "prettier": "^3.0.0",
+    "typescript": "^5.5.4",
+    "vite": "^5.5.1"
+  }
+}
