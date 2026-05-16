@@ -1,29 +1,30 @@
-import { Server } from 'stellar-sdk';
+// Frontend Stellar lib — calls the backend API instead of Horizon directly.
+// Set VITE_API_URL in .env to point at the backend (default: http://localhost:3001).
+
+const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
 
 export type NetworkStatus = {
   network: string;
   horizon: string;
   protocolVersion: string;
+  latestLedger: string;
+  closedAt: string;
 };
 
-const HORIZON_URL = import.meta.env.VITE_HORIZON_URL ?? 'https://horizon.stellar.org';
-const server = new Server(HORIZON_URL);
-
 export async function getNetworkStatus(): Promise<NetworkStatus> {
-  const root = await server.root();
-  return {
-    network: root.network_passphrase,
-    horizon: HORIZON_URL,
-    protocolVersion: String(root.protocol_version),
-  };
+  const res = await fetch(`${API_URL}/api/network`);
+  if (!res.ok) throw new Error(`API error ${res.status}`);
+  return res.json();
 }
 
-export async function fetchAccountBalances(accountId: string) {
-  const account = await server.loadAccount(accountId);
-  return account.balances;
+export async function getWaveInfo() {
+  const res = await fetch(`${API_URL}/api/wave`);
+  if (!res.ok) throw new Error(`API error ${res.status}`);
+  return res.json();
 }
 
-export async function fetchRecentPayments(limit = 10) {
-  const payments = await server.payments().limit(limit).order('desc').call();
-  return payments.records;
+export async function getOpenIssues() {
+  const res = await fetch(`${API_URL}/api/issues`);
+  if (!res.ok) throw new Error(`API error ${res.status}`);
+  return res.json();
 }

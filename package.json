@@ -2,27 +2,31 @@
   "name": "the-regulation-reckoning",
   "version": "0.1.0",
   "private": true,
-  "description": "A research-driven open-source publication and analytics platform focused on global crypto regulation and ecosystem resilience.",
+  "description": "Stellar Drips Wave 5 open-source contributor platform for regulatory resilience and on-chain signal analysis.",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "lint": "eslint . --ext .ts,.tsx",
-    "format": "prettier --check ."
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "stellar-sdk": "^10.2.0"
+    "stellar-sdk": "^10.4.1"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
-    "eslint": "^9.0.0",
-    "eslint-plugin-react": "^7.33.2",
-    "prettier": "^3.0.0",
+    "@vitest/coverage-v8": "^4.1.6",
+    "jsdom": "^29.1.1",
     "typescript": "^5.5.4",
-    "vite": "^5.5.1"
+    "vite": "^6.0.0",
+    "vitest": "^4.1.6"
   }
 }
