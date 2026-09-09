@@ -178,11 +178,10 @@ impl BountyContract {
             return Err(BountyError::BountyAlreadyExists);
         }
 
-        // Move tokens from the funder into this contract's escrow.
-        let client = token::Client::new(&env, &token);
-        let escrow = env.current_contract_address();
-        client.transfer(&funder, &escrow, &amount);
-
+        // Checks-Effects-Interactions: store the bounty BEFORE the external
+        // token transfer. The token is funder-supplied and therefore untrusted;
+        // settling first means a reentrant `create` with the same arguments
+        // (same auth tree) hits the replay guard instead of double-depositing.
         let bounty = Bounty {
             funder: funder.clone(),
             contributor: None,
@@ -194,6 +193,11 @@ impl BountyContract {
         env.storage()
             .instance()
             .set(&DataKey::Bounty(issue_id.clone()), &bounty);
+
+        // Move tokens from the funder into this contract's escrow.
+        let client = token::Client::new(&env, &token);
+        let escrow = env.current_contract_address();
+        client.transfer(&funder, &escrow, &amount);
 
         BountyCreated {
             issue_id,
@@ -230,17 +234,23 @@ impl BountyContract {
             return Err(BountyError::AlreadyReleased);
         }
 
-        let token = bounty.token.clone();
-        let amount = bounty.amount;
-        let client = token::Client::new(&env, &token);
-        let escrow = env.current_contract_address();
-        client.transfer(&escrow, &contributor, &amount);
-
+        // Checks-Effects-Interactions: settle state BEFORE the external token
+        // transfer. The token address is funder-supplied (create), so it must
+        // be treated as untrusted — a malicious token contract could otherwise
+        // re-enter `release` with the same arguments (the admin auth tree
+        // already satisfies the inner call) and double-pay while state is
+        // still unsettled.
         bounty.released = true;
         bounty.contributor = Some(contributor.clone());
         env.storage()
             .instance()
             .set(&DataKey::Bounty(issue_id.clone()), &bounty);
+
+        let token = bounty.token.clone();
+        let amount = bounty.amount;
+        let client = token::Client::new(&env, &token);
+        let escrow = env.current_contract_address();
+        client.transfer(&escrow, &contributor, &amount);
 
         // Inter-contract communication: record the payout in the contributor
         // registry when one is configured. If the registry call fails, the
@@ -288,17 +298,20 @@ impl BountyContract {
         }
         bounty.funder.require_auth();
 
+        // Checks-Effects-Interactions: settle state before the external token
+        // transfer, for the same reason as `release` — the funder supplied the
+        // token address and could re-enter `reclaim` to drain the escrow.
+        bounty.released = true;
+        env.storage()
+            .instance()
+            .set(&DataKey::Bounty(issue_id.clone()), &bounty);
+
         let token = bounty.token.clone();
         let amount = bounty.amount;
         let funder = bounty.funder.clone();
         let client = token::Client::new(&env, &token);
         let escrow = env.current_contract_address();
         client.transfer(&escrow, &funder, &amount);
-
-        bounty.released = true;
-        env.storage()
-            .instance()
-            .set(&DataKey::Bounty(issue_id.clone()), &bounty);
 
         BountyReclaimed {
             issue_id,

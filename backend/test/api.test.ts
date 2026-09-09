@@ -37,9 +37,9 @@ vi.mock('../src/services/soroban', () => ({
   buildContractTransaction: vi.fn().mockResolvedValue({ txXdr: 'AAAA(unsigned-simulated-xdr)' }),
   submitSignedTransaction: vi.fn().mockResolvedValue({ hash: 'deadbeef', status: 'SUCCESS' }),
   readBounty: vi.fn().mockResolvedValue({
-    funder: 'GBRVOQSLP32BGOCYA56DCTM5PUQWW7YLBBAKVXBHDTJ6SNKVLGMWFRQI',
+    funder: 'GB2OVPTEO2BYRRRRWNRPZZOC3VW77IQDXJPBY2WYV2MXSU7C5HQDZ6E6',
     contributor: null,
-    token: 'CCOAF5DIHLO4457S6EGQYSLXGGDRQPTO42DU6N5KVH4M2MSA2VDW2NB4',
+    token: 'CB7NFW2WD3FXKBYANZX7J3FO6PBST2H3IE6SPHXHSWIQESII2P2A6Y6P',
     amount: '150',
     issue_id: 'gh-2',
     released: false,
@@ -62,12 +62,12 @@ function seedAppData(): void {
     'evt-1',
     'aa11bb',
     1000,
-    'CDE5G6LZC27ZXEYTZAELNSMHLZAR6PNLTP3UMJZNAQ7TXDG337A7DBR6',
+    'CB4OI57YRKLAIX2RGFS7DX3GIGEST4MSI447VAJPRCBCNFUHWLWLQLWT',
     'bounty_created',
     'gh-2',
     JSON.stringify({
-      funder: 'GBRVOQSLP32BGOCYA56DCTM5PUQWW7YLBBAKVXBHDTJ6SNKVLGMWFRQI',
-      token: 'CCOAF5DIHLO4457S6EGQYSLXGGDRQPTO42DU6N5KVH4M2MSA2VDW2NB4',
+      funder: 'GB2OVPTEO2BYRRRRWNRPZZOC3VW77IQDXJPBY2WYV2MXSU7C5HQDZ6E6',
+      token: 'CB7NFW2WD3FXKBYANZX7J3FO6PBST2H3IE6SPHXHSWIQESII2P2A6Y6P',
       amount: '150',
     }),
     '2026-09-09T10:00:00Z',
@@ -78,9 +78,9 @@ function seedAppData(): void {
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     'gh-2',
-    'GBRVOQSLP32BGOCYA56DCTM5PUQWW7YLBBAKVXBHDTJ6SNKVLGMWFRQI',
+    'GB2OVPTEO2BYRRRRWNRPZZOC3VW77IQDXJPBY2WYV2MXSU7C5HQDZ6E6',
     null,
-    'CCOAF5DIHLO4457S6EGQYSLXGGDRQPTO42DU6N5KVH4M2MSA2VDW2NB4',
+    'CB7NFW2WD3FXKBYANZX7J3FO6PBST2H3IE6SPHXHSWIQESII2P2A6Y6P',
     '150',
     0,
     'aa11bb',
@@ -158,7 +158,7 @@ describe('GET /api/contract', () => {
   it('reports configured contract metadata', async () => {
     const res = await request(createApp()).get('/api/contract');
     expect(res.status).toBe(200);
-    expect(res.body.contractId).toBe('CDE5G6LZC27ZXEYTZAELNSMHLZAR6PNLTP3UMJZNAQ7TXDG337A7DBR6');
+    expect(res.body.contractId).toBe('CB4OI57YRKLAIX2RGFS7DX3GIGEST4MSI447VAJPRCBCNFUHWLWLQLWT');
     expect(res.body.initialised).toBe(true);
   });
 });
@@ -204,9 +204,9 @@ describe('POST /api/tx/build', () => {
   it('builds an unsigned transaction for a create action', async () => {
     const res = await request(createApp()).post('/api/tx/build').send({
       action: 'create',
-      source: 'GBRVOQSLP32BGOCYA56DCTM5PUQWW7YLBBAKVXBHDTJ6SNKVLGMWFRQI',
-      funder: 'GBRVOQSLP32BGOCYA56DCTM5PUQWW7YLBBAKVXBHDTJ6SNKVLGMWFRQI',
-      token: 'CCOAF5DIHLO4457S6EGQYSLXGGDRQPTO42DU6N5KVH4M2MSA2VDW2NB4',
+      source: 'GB2OVPTEO2BYRRRRWNRPZZOC3VW77IQDXJPBY2WYV2MXSU7C5HQDZ6E6',
+      funder: 'GB2OVPTEO2BYRRRRWNRPZZOC3VW77IQDXJPBY2WYV2MXSU7C5HQDZ6E6',
+      token: 'CB7NFW2WD3FXKBYANZX7J3FO6PBST2H3IE6SPHXHSWIQESII2P2A6Y6P',
       amount: '100',
       issueId: 'gh-9',
     });
@@ -226,7 +226,7 @@ describe('POST /api/tx/build', () => {
   it('rejects an unknown action', async () => {
     const res = await request(createApp())
       .post('/api/tx/build')
-      .send({ action: 'hack', source: 'GBRVOQSLP32BGOCYA56DCTM5PUQWW7YLBBAKVXBHDTJ6SNKVLGMWFRQI' });
+      .send({ action: 'hack', source: 'GB2OVPTEO2BYRRRRWNRPZZOC3VW77IQDXJPBY2WYV2MXSU7C5HQDZ6E6' });
     expect(res.status).toBe(400);
     expect(res.body.code).toBe('BAD_ACTION');
   });

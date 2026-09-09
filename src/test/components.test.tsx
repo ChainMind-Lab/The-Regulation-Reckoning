@@ -16,15 +16,15 @@ import type { Bounty, ContractEvent, PolicyRecord, AnalyticsSnapshot } from '../
 import type { WalletAccount } from '../lib/wallet';
 
 const ACCOUNT: WalletAccount = {
-  address: 'GBRVOQSLP32BGOCYA56DCTM5PUQWW7YLBBAKVXBHDTJ6SNKVLGMWFRQI',
+  address: 'GB2OVPTEO2BYRRRRWNRPZZOC3VW77IQDXJPBY2WYV2MXSU7C5HQDZ6E6',
 };
 
 const CONTRACT = {
   configured: true,
-  contractId: 'CDE5G6LZC27ZXEYTZAELNSMHLZAR6PNLTP3UMJZNAQ7TXDG337A7DBR6',
-  tokenId: 'CCOAF5DIHLO4457S6EGQYSLXGGDRQPTO42DU6N5KVH4M2MSA2VDW2NB4',
+  contractId: 'CB4OI57YRKLAIX2RGFS7DX3GIGEST4MSI447VAJPRCBCNFUHWLWLQLWT',
+  tokenId: 'CB7NFW2WD3FXKBYANZX7J3FO6PBST2H3IE6SPHXHSWIQESII2P2A6Y6P',
   registryId: 'CDEMO123REGISTRY456DEMO789REGISTRY012',
-  admin: 'GBRVOQSLP32BGOCYA56DCTM5PUQWW7YLBBAKVXBHDTJ6SNKVLGMWFRQI',
+  admin: 'GB2OVPTEO2BYRRRRWNRPZZOC3VW77IQDXJPBY2WYV2MXSU7C5HQDZ6E6',
   network: 'Test SDF Network ; September 2015',
   rpcUrl: 'https://soroban-testnet.stellar.org',
   horizonUrl: 'https://horizon-testnet.stellar.org',
@@ -33,9 +33,9 @@ const CONTRACT = {
 
 const BOUNTY: Bounty = {
   issueId: 'repo#42',
-  funder: 'GBRVOQSLP32BGOCYA56DCTM5PUQWW7YLBBAKVXBHDTJ6SNKVLGMWFRQI',
+  funder: 'GB2OVPTEO2BYRRRRWNRPZZOC3VW77IQDXJPBY2WYV2MXSU7C5HQDZ6E6',
   contributor: null,
-  token: 'CCOAF5DIHLO4457S6EGQYSLXGGDRQPTO42DU6N5KVH4M2MSA2VDW2NB4',
+  token: 'CB7NFW2WD3FXKBYANZX7J3FO6PBST2H3IE6SPHXHSWIQESII2P2A6Y6P',
   amount: '250',
   released: false,
   createdTx: 'abc123',
@@ -49,7 +49,7 @@ const EVENT: ContractEvent = {
   id: 1,
   txHash: 'abc123def456',
   ledger: 19695405,
-  contractId: 'CDE5G6LZC27ZXEYTZAELNSMHLZAR6PNLTP3UMJZNAQ7TXDG337A7DBR6',
+  contractId: 'CB4OI57YRKLAIX2RGFS7DX3GIGEST4MSI447VAJPRCBCNFUHWLWLQLWT',
   topic: 'bounty_created',
   issueId: 'repo#42',
   payload: {},
@@ -130,7 +130,7 @@ describe('NavBar', () => {
 
   it('shows wallet address when connected', () => {
     render(<NavBar account={ACCOUNT} onConnect={() => undefined} onDisconnect={() => undefined} />);
-    expect(screen.getByText(/GBRVOQ…FRQI/)).toBeInTheDocument();
+    expect(screen.getByText(/GB2OVP…Z6E6/)).toBeInTheDocument();
   });
 });
 
@@ -250,7 +250,7 @@ describe('BountyCard', () => {
     const released = { ...BOUNTY, released: true, contributor: ACCOUNT.address };
     render(<BountyCard bounty={released} />);
     expect(screen.getByText('Released')).toBeInTheDocument();
-    expect(screen.getAllByText(/GBRVOQ…FRQI/).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText(/GB2OVP…Z6E6/).length).toBeGreaterThanOrEqual(2);
   });
 
   it('links to the explorer for the create tx', () => {

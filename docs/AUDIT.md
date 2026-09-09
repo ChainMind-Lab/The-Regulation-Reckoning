@@ -3,6 +3,22 @@
 Audit date: 2026-09-09
 Audit scope: entire repository (frontend, backend, Soroban contract, CI, docs, config, metadata).
 
+> **Re-verified against `main` (2026-09-09, later the same day):** all figures in
+> this document were re-confirmed on the current commit — `cargo test` 21+7
+> contract tests, `npm test` 30 (frontend) + 46 (backend), the full live Testnet
+> e2e (fresh create `8e04ed19…`, release `bfe1d5d2…`), and the live demo
+> endpoints. Nothing in this audit is stale relative to `main`.
+>
+> **Post-audit hardening (same day):** a second-engineer cold review of both
+> contracts found a checks-effects-interactions ordering issue in `create`/
+> `release`/`reclaim` (token transfer before state flip, leaving a theoretical
+> reentrancy window against a malicious token contract); state is now set before
+> transfers and all 21 bounty tests still pass. The Testnet admin key was also
+> **rotated** (the prior key appeared in public transaction hashes): fresh
+> deployment with a new admin, and the deploy script now handles the
+> deterministic SAC token ID correctly (deploy-first, fall back to computed ID
+> only on "already exists").
+
 ## Method
 
 Every claim in the README, docs, ROADMAP, and source comments was checked against

@@ -116,19 +116,25 @@ REGISTRY_ID=$("$STELLAR" contract deploy \
 echo "Registry contract: $REGISTRY_ID"
 
 echo "── Deploying RRD demo token (SAC) ────────────────────────────"
-# The SAC address is deterministic (issuer + asset code), so the token may
-# already exist from a previous deploy. Compute the ID and only deploy when
-# it is not already on-chain — makes the script idempotent across re-runs.
-TOKEN_ID=$("$STELLAR" contract id asset --asset "RRD:${PUBLIC}" 2>/dev/null | tail -1)
-if [ -z "$TOKEN_ID" ]; then
-  TOKEN_ID=$("$STELLAR" contract asset deploy \
-    --asset "RRD:${PUBLIC}" \
-    --source-account "$SECRET" \
-    --rpc-url "$RPC_URL" \
-    --network-passphrase "$PASSPHRASE" 2>&1 | tail -1)
+# The SAC address is deterministic (issuer + asset code). Try to deploy it;
+# if the token already exists on-chain the deploy fails with "contract already
+# exists" — in that case reuse the deterministic ID. (A fresh issuer has no
+# token yet, so always attempt the deploy first; merely computing the ID is
+# NOT proof of deployment.)
+TOKEN_DEPLOY_OUTPUT=$("$STELLAR" contract asset deploy \
+  --asset "RRD:${PUBLIC}" \
+  --source-account "$SECRET" \
+  --rpc-url "$RPC_URL" \
+  --network-passphrase "$PASSPHRASE" 2>&1 || true)
+if echo "$TOKEN_DEPLOY_OUTPUT" | grep -q "already exists"; then
+  TOKEN_ID=$("$STELLAR" contract id asset --asset "RRD:${PUBLIC}" 2>/dev/null | tail -1)
+  echo "Demo token already exists (deterministic SAC id): $TOKEN_ID"
+elif [ -n "$TOKEN_DEPLOY_OUTPUT" ]; then
+  TOKEN_ID=$(echo "$TOKEN_DEPLOY_OUTPUT" | tail -1)
   echo "Demo token deployed: $TOKEN_ID"
 else
-  echo "Demo token already exists (deterministic SAC id): $TOKEN_ID"
+  echo "ERROR: token deploy returned no output" >&2
+  exit 1
 fi
 
 echo "── Initialising contributors registry ────────────────────────"

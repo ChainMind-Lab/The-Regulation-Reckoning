@@ -7,10 +7,10 @@ contracts below are real: every address links to the Testnet explorer.
 
 | Artifact | Address / value |
 |---|---|
-| Bounty contract | [`CDE5G6LZC27ZXEYTZAELNSMHLZAR6PNLTP3UMJZNAQ7TXDG337A7DBR6`](https://stellar.expert/explorer/testnet/contract/CDE5G6LZC27ZXEYTZAELNSMHLZAR6PNLTP3UMJZNAQ7TXDG337A7DBR6) |
-| Contributors registry | [`CALHU2WW55X5RZMHSN4LVLU2K46SGJNYW3BFGAPDJYBQRRD6T3EEUFD2`](https://stellar.expert/explorer/testnet/contract/CALHU2WW55X5RZMHSN4LVLU2K46SGJNYW3BFGAPDJYBQRRD6T3EEUFD2) |
-| Demo token (RRD SAC) | [`CCOAF5DIHLO4457S6EGQYSLXGGDRQPTO42DU6N5KVH4M2MSA2VDW2NB4`](https://stellar.expert/explorer/testnet/contract/CCOAF5DIHLO4457S6EGQYSLXGGDRQPTO42DU6N5KVH4M2MSA2VDW2NB4) |
-| Contract admin | `GBRVOQSLP32BGOCYA56DCTM5PUQWW7YLBBAKVXBHDTJ6SNKVLGMWFRQI` |
+| Bounty contract | [`CB4OI57YRKLAIX2RGFS7DX3GIGEST4MSI447VAJPRCBCNFUHWLWLQLWT`](https://stellar.expert/explorer/testnet/contract/CB4OI57YRKLAIX2RGFS7DX3GIGEST4MSI447VAJPRCBCNFUHWLWLQLWT) |
+| Contributors registry | [`CC53MJDM5M76GMZONKC56ONW4MM74MX3KF4LSXMWTRE7W66RASDP4W7Q`](https://stellar.expert/explorer/testnet/contract/CC53MJDM5M76GMZONKC56ONW4MM74MX3KF4LSXMWTRE7W66RASDP4W7Q) |
+| Demo token (RRD SAC) | [`CB7NFW2WD3FXKBYANZX7J3FO6PBST2H3IE6SPHXHSWIQESII2P2A6Y6P`](https://stellar.expert/explorer/testnet/contract/CB7NFW2WD3FXKBYANZX7J3FO6PBST2H3IE6SPHXHSWIQESII2P2A6Y6P) |
+| Contract admin | `GB2OVPTEO2BYRRRRWNRPZZOC3VW77IQDXJPBY2WYV2MXSU7C5HQDZ6E6` |
 | Network | Test SDF Network ; September 2015 |
 | RPC | `https://soroban-testnet.stellar.org` |
 | Horizon | `https://horizon-testnet.stellar.org` |
@@ -24,10 +24,10 @@ and it accumulates per-contributor totals on-chain. The backend reads it live
 
 | Step | Transaction hash |
 |---|---|
-| Registry initialised (allowed caller = bounty) | [`b211edd3e84cf691e65cf96980ea69bf1a49bfc8d31b672e9390d34a8d47da78`](https://stellar.expert/explorer/testnet/tx/b211edd3e84cf691e65cf96980ea69bf1a49bfc8d31b672e9390d34a8d47da78) |
-| Bounty initialised (admin + registry) | [`a099ff84df7142b12daac71673b95b88846924537ec4e4bd385c11a884c4d052`](https://stellar.expert/explorer/testnet/tx/a099ff84df7142b12daac71673b95b88846924537ec4e4bd385c11a884c4d052) |
-| Create bounty (`e2e-…`, 250 RRD) | [`043c8e6de7ccda1455931ca7d26972db309ab2bbaa916936d4f50340c22b3809`](https://stellar.expert/explorer/testnet/tx/043c8e6de7ccda1455931ca7d26972db309ab2bbaa916936d4f50340c22b3809) |
-| Release bounty → contributor recorded in registry | [`97c2b71e40d1eb62a77518dc4e4067b0a7257201fa98bed3c8e0cbbcd3d7c9ee`](https://stellar.expert/explorer/testnet/tx/97c2b71e40d1eb62a77518dc4e4067b0a7257201fa98bed3c8e0cbbcd3d7c9ee) |
+| Registry initialised (allowed caller = bounty) | [`6105dd787dc2dc57cb3fd5806c7fc2a37bbad11eb1a0ba86bb33d32f6d790182`](https://stellar.expert/explorer/testnet/tx/6105dd787dc2dc57cb3fd5806c7fc2a37bbad11eb1a0ba86bb33d32f6d790182) |
+| Bounty initialised (admin + registry) | [`27e6a457261cbae1bfb711391c95ff85d9dfef3860f69a4d4017f265ac8c9b77`](https://stellar.expert/explorer/testnet/tx/27e6a457261cbae1bfb711391c95ff85d9dfef3860f69a4d4017f265ac8c9b77) |
+| Create bounty (`e2e-…`, 250 RRD) | [`8e04ed19cf52b20d53271bf7103c64568ad68e79bb70f1da048fe7ebd0a67c3e`](https://stellar.expert/explorer/testnet/tx/8e04ed19cf52b20d53271bf7103c64568ad68e79bb70f1da048fe7ebd0a67c3e) |
+| Release bounty → contributor recorded in registry | [`bfe1d5d2e1efb3d3b60706ef9bec4c31ec00e11c6de6b6c18e365df0106709c5`](https://stellar.expert/explorer/testnet/tx/bfe1d5d2e1efb3d3b60706ef9bec4c31ec00e11c6de6b6c18e365df0106709c5) |
 
 The last two hashes are the tail of the full proof chain exercised by
 `backend/e2e/testnet-e2e.mjs`: funder account → trustline → mint → build/sign/submit
@@ -54,10 +54,10 @@ not seeds.
 ```bash
 # 1. Run the backend against the live Testnet deployment
 cd backend && npm ci && npm run build
-BOUNTY_CONTRACT_ID=CDE5G6LZC27ZXEYTZAELNSMHLZAR6PNLTP3UMJZNAQ7TXDG337A7DBR6 \
-DEMO_TOKEN_ID=CCOAF5DIHLO4457S6EGQYSLXGGDRQPTO42DU6N5KVH4M2MSA2VDW2NB4 \
-CONTRIBUTOR_REGISTRY_ID=CALHU2WW55X5RZMHSN4LVLU2K46SGJNYW3BFGAPDJYBQRRD6T3EEUFD2 \
-BOUNTY_ADMIN_ADDRESS=GBRVOQSLP32BGOCYA56DCTM5PUQWW7YLBBAKVXBHDTJ6SNKVLGMWFRQI \
+BOUNTY_CONTRACT_ID=CB4OI57YRKLAIX2RGFS7DX3GIGEST4MSI447VAJPRCBCNFUHWLWLQLWT \
+DEMO_TOKEN_ID=CB7NFW2WD3FXKBYANZX7J3FO6PBST2H3IE6SPHXHSWIQESII2P2A6Y6P \
+CONTRIBUTOR_REGISTRY_ID=CC53MJDM5M76GMZONKC56ONW4MM74MX3KF4LSXMWTRE7W66RASDP4W7Q \
+BOUNTY_ADMIN_ADDRESS=GB2OVPTEO2BYRRRRWNRPZZOC3VW77IQDXJPBY2WYV2MXSU7C5HQDZ6E6 \
 FRONTEND_URL=<your-frontend-origin> node dist/server.js
 
 # 2. Build + serve the frontend pointed at the public backend
@@ -108,10 +108,10 @@ Required variables:
 
 | Variable | Value |
 |---|---|
-| `BOUNTY_CONTRACT_ID` | `CDE5G6LZC27ZXEYTZAELNSMHLZAR6PNLTP3UMJZNAQ7TXDG337A7DBR6` |
-| `DEMO_TOKEN_ID` | `CCOAF5DIHLO4457S6EGQYSLXGGDRQPTO42DU6N5KVH4M2MSA2VDW2NB4` |
-| `CONTRIBUTOR_REGISTRY_ID` | `CALHU2WW55X5RZMHSN4LVLU2K46SGJNYW3BFGAPDJYBQRRD6T3EEUFD2` |
-| `BOUNTY_ADMIN_ADDRESS` | `GBRVOQSLP32BGOCYA56DCTM5PUQWW7YLBBAKVXBHDTJ6SNKVLGMWFRQI` |
+| `BOUNTY_CONTRACT_ID` | `CB4OI57YRKLAIX2RGFS7DX3GIGEST4MSI447VAJPRCBCNFUHWLWLQLWT` |
+| `DEMO_TOKEN_ID` | `CB7NFW2WD3FXKBYANZX7J3FO6PBST2H3IE6SPHXHSWIQESII2P2A6Y6P` |
+| `CONTRIBUTOR_REGISTRY_ID` | `CC53MJDM5M76GMZONKC56ONW4MM74MX3KF4LSXMWTRE7W66RASDP4W7Q` |
+| `BOUNTY_ADMIN_ADDRESS` | `GB2OVPTEO2BYRRRRWNRPZZOC3VW77IQDXJPBY2WYV2MXSU7C5HQDZ6E6` |
 
 ## Run the end-to-end Testnet proof
 

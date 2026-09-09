@@ -12,8 +12,8 @@ dashboard is a thin client over the backend API.
                         │              Stellar Testnet               │
                         │                                            │
   Freighter wallet ─────┤  Soroban RPC (soroban-testnet.stellar.org) │
-  (browser, signs XDR)  │  · bounty contract CCVDE7Q…LCH7            │
-                        │  · contributors registry CBIA55M…ES3CS     │
+  (browser, signs XDR)  │  · bounty contract CB4OI57Y…QLWT            │
+                        │  · contributors registry CC53MJDM…W4W7Q     │
                         │  · RRD token CCOAF5D…2NB4                  │
                         │  Horizon (network status, payments)        │
                         │  (bounty → registry: env.invoke_contract  │
@@ -96,12 +96,17 @@ tests covering authorization (direct callers rejected), validation, math, and ev
 ### Frontend (`src/`)
 
 - **`lib/api.ts`** — typed client for the backend REST API.
-- **`lib/wallet.ts`** — Freighter integration: connect, detect availability, and sign
-  transaction XDR. The frontend never holds a secret key.
+- **`lib/wallet.ts`** — Freighter integration: connect, detect availability, sign
+  transaction XDR, and detect wrong-network state. The frontend never holds a secret key.
+- **`components/VerificationPanel.tsx`** — on-chain verification: deployed contract
+  IDs, admin, network, and successful transaction history with copy buttons and
+  explorer links.
 - **`components/BountyForm.tsx`** — the wallet flow: `POST /api/tx/build` →
   `signTransactionXdr` in Freighter → `POST /api/tx/submit` → refresh.
 - **`components/EventsFeed.tsx`** — indexed on-chain events with explorer links.
-- **`components/PolicyPanel.tsx`** — ingested regulatory data + analytics tiles.
+- **`components/PolicyPanel.tsx`** — ingested regulatory data + analytics tiles,
+  policy timeline chart, jurisdiction risk heat map, ecosystem-impact and
+  survival-signal aggregations.
 
 ## Transaction flow (fund a bounty)
 
