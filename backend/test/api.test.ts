@@ -62,7 +62,7 @@ function seedAppData(): void {
     'evt-1',
     'aa11bb',
     1000,
-    'CCVDE7Q3UF4O223ONMLUPYPUZWFO7STOQJWCDD3C5LELDLU4GHOFLCH7',
+    'CDE5G6LZC27ZXEYTZAELNSMHLZAR6PNLTP3UMJZNAQ7TXDG337A7DBR6',
     'bounty_created',
     'gh-2',
     JSON.stringify({
@@ -158,7 +158,7 @@ describe('GET /api/contract', () => {
   it('reports configured contract metadata', async () => {
     const res = await request(createApp()).get('/api/contract');
     expect(res.status).toBe(200);
-    expect(res.body.contractId).toBe('CCVDE7Q3UF4O223ONMLUPYPUZWFO7STOQJWCDD3C5LELDLU4GHOFLCH7');
+    expect(res.body.contractId).toBe('CDE5G6LZC27ZXEYTZAELNSMHLZAR6PNLTP3UMJZNAQ7TXDG337A7DBR6');
     expect(res.body.initialised).toBe(true);
   });
 });

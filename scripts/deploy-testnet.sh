@@ -116,12 +116,20 @@ REGISTRY_ID=$("$STELLAR" contract deploy \
 echo "Registry contract: $REGISTRY_ID"
 
 echo "── Deploying RRD demo token (SAC) ────────────────────────────"
-TOKEN_ID=$("$STELLAR" contract asset deploy \
-  --asset "RRD:${PUBLIC}" \
-  --source-account "$SECRET" \
-  --rpc-url "$RPC_URL" \
-  --network-passphrase "$PASSPHRASE" 2>&1 | tail -1)
-echo "Demo token: $TOKEN_ID"
+# The SAC address is deterministic (issuer + asset code), so the token may
+# already exist from a previous deploy. Compute the ID and only deploy when
+# it is not already on-chain — makes the script idempotent across re-runs.
+TOKEN_ID=$("$STELLAR" contract id asset --asset "RRD:${PUBLIC}" 2>/dev/null | tail -1)
+if [ -z "$TOKEN_ID" ]; then
+  TOKEN_ID=$("$STELLAR" contract asset deploy \
+    --asset "RRD:${PUBLIC}" \
+    --source-account "$SECRET" \
+    --rpc-url "$RPC_URL" \
+    --network-passphrase "$PASSPHRASE" 2>&1 | tail -1)
+  echo "Demo token deployed: $TOKEN_ID"
+else
+  echo "Demo token already exists (deterministic SAC id): $TOKEN_ID"
+fi
 
 echo "── Initialising contributors registry ────────────────────────"
 "$STELLAR" contract invoke \
@@ -129,16 +137,18 @@ echo "── Initialising contributors registry ──────────�
   --source-account "$SECRET" \
   --rpc-url "$RPC_URL" \
   --network-passphrase "$PASSPHRASE" \
-  -- init --admin "$PUBLIC" --allowed "$BOUNTY_ID" >/dev/null
+  -- init --admin "$PUBLIC" --allowed-caller "$BOUNTY_ID" >/dev/null
 echo "Registry initialised (admin: $PUBLIC, allowed caller: $BOUNTY_ID)"
 
 echo "── Initialising bounty contract ──────────────────────────────"
+# The registry argument is Option<Address>, which the CLI parses as JSON —
+# pass the contract id as a JSON string so the address type is unambiguous.
 "$STELLAR" contract invoke \
   --id "$BOUNTY_ID" \
   --source-account "$SECRET" \
   --rpc-url "$RPC_URL" \
   --network-passphrase "$PASSPHRASE" \
-  -- init --admin "$PUBLIC" --registry "$REGISTRY_ID" >/dev/null
+  -- init --admin "$PUBLIC" --registry "\"$REGISTRY_ID\"" >/dev/null
 echo "Contract initialised (admin: $PUBLIC, registry: $REGISTRY_ID)"
 
 echo "── Writing backend/.env.deployed ─────────────────────────────"

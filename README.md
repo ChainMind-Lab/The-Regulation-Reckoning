@@ -39,8 +39,8 @@ A production-oriented Stellar/Soroban application (not a prototype):
 
 | Artifact | Value |
 |---|---|
-| Bounty contract | `CCVDE7Q3UF4O223ONMLUPYPUZWFO7STOQJWCDD3C5LELDLU4GHOFLCH7` |
-| Contributors registry | `CBIA55MJABCVVMZ6BMF3GNZ7USTNJW2ZJQMO2MNUXHFPRN34JOOES3CS` |
+| Bounty contract | `CDE5G6LZC27ZXEYTZAELNSMHLZAR6PNLTP3UMJZNAQ7TXDG337A7DBR6` |
+| Contributors registry | `CALHU2WW55X5RZMHSN4LVLU2K46SGJNYW3BFGAPDJYBQRRD6T3EEUFD2` |
 | Demo token (RRD, SAC) | `CCOAF5DIHLO4457S6EGQYSLXGGDRQPTO42DU6N5KVH4M2MSA2VDW2NB4` |
 | Contract admin | `GBRVOQSLP32BGOCYA56DCTM5PUQWW7YLBBAKVXBHDTJ6SNKVLGMWFRQI` |
 | Network | Stellar Testnet (`soroban-testnet.stellar.org`) |
@@ -49,10 +49,10 @@ The end-to-end proof (frontend action → Freighter-style signature → Soroban 
 bounty→registry inter-contract call → event indexing → backend → dashboard) is a runnable
 script with recorded transactions:
 
-- Registry initialised (allowed caller = bounty): `9fffc497…64c5`
-- Bounty initialised (admin + registry): `d3823f15…f4ec`
-- Create bounty: `7ed5ec53…44b`
-- Release bounty → contributor recorded in registry: `135d978b…db74`
+- Registry initialised (allowed caller = bounty): `b211edd3…da78`
+- Bounty initialised (admin + registry): `a099ff84…d052`
+- Create bounty: `51e0d184…9332`
+- Release bounty → contributor recorded in registry: `733365c0…d37`
 
 Full hashes and explorer links are in `docs/DEPLOYMENT.md`. View them on the
 [Testnet explorer](https://stellar.expert/explorer/testnet) or re-run the whole flow
@@ -61,9 +61,9 @@ yourself:
 ```bash
 cd backend
 npm run build
-BOUNTY_CONTRACT_ID=CCVDE7Q3UF4O223ONMLUPYPUZWFO7STOQJWCDD3C5LELDLU4GHOFLCH7 \
+BOUNTY_CONTRACT_ID=CDE5G6LZC27ZXEYTZAELNSMHLZAR6PNLTP3UMJZNAQ7TXDG337A7DBR6 \
 DEMO_TOKEN_ID=CCOAF5DIHLO4457S6EGQYSLXGGDRQPTO42DU6N5KVH4M2MSA2VDW2NB4 \
-CONTRIBUTOR_REGISTRY_ID=CBIA55MJABCVVMZ6BMF3GNZ7USTNJW2ZJQMO2MNUXHFPRN34JOOES3CS \
+CONTRIBUTOR_REGISTRY_ID=CALHU2WW55X5RZMHSN4LVLU2K46SGJNYW3BFGAPDJYBQRRD6T3EEUFD2 \
 BOUNTY_ADMIN_ADDRESS=GBRVOQSLP32BGOCYA56DCTM5PUQWW7YLBBAKVXBHDTJ6SNKVLGMWFRQI \
 node dist/server.js &   # backend on :3001, indexer enabled
 ADMIN_SECRET=<deploy-account-secret> node e2e/testnet-e2e.mjs
