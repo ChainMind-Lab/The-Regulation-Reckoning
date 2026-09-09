@@ -1,30 +1,39 @@
 # Deployment — Stellar Testnet
 
 This document records the **live Testnet deployment** and how to reproduce it. The
-contract and token below are real: every address links to the Testnet explorer.
+contracts below are real: every address links to the Testnet explorer.
 
 ## Live deployment (2026-09-09)
 
 | Artifact | Address / value |
 |---|---|
-| Bounty contract | [`CC2YEX6U7HV7L7L45HVOLVWGN2POARLPS3XICZS6KQH5Y52OTAHK7LVY`](https://stellar.expert/explorer/testnet/contract/CC2YEX6U7HV7L7L45HVOLVWGN2POARLPS3XICZS6KQH5Y52OTAHK7LVY) |
+| Bounty contract | [`CCVDE7Q3UF4O223ONMLUPYPUZWFO7STOQJWCDD3C5LELDLU4GHOFLCH7`](https://stellar.expert/explorer/testnet/contract/CCVDE7Q3UF4O223ONMLUPYPUZWFO7STOQJWCDD3C5LELDLU4GHOFLCH7) |
+| Contributors registry | [`CBIA55MJABCVVMZ6BMF3GNZ7USTNJW2ZJQMO2MNUXHFPRN34JOOES3CS`](https://stellar.expert/explorer/testnet/contract/CBIA55MJABCVVMZ6BMF3GNZ7USTNJW2ZJQMO2MNUXHFPRN34JOOES3CS) |
 | Demo token (RRD SAC) | [`CCOAF5DIHLO4457S6EGQYSLXGGDRQPTO42DU6N5KVH4M2MSA2VDW2NB4`](https://stellar.expert/explorer/testnet/contract/CCOAF5DIHLO4457S6EGQYSLXGGDRQPTO42DU6N5KVH4M2MSA2VDW2NB4) |
 | Contract admin | `GBRVOQSLP32BGOCYA56DCTM5PUQWW7YLBBAKVXBHDTJ6SNKVLGMWFRQI` |
 | Network | Test SDF Network ; September 2015 |
 | RPC | `https://soroban-testnet.stellar.org` |
 | Horizon | `https://horizon-testnet.stellar.org` |
 
+The **contributors registry** is the second Soroban contract: the bounty contract
+calls it via inter-contract invocation (`env.invoke_contract`) on every release,
+and it accumulates per-contributor totals on-chain. The backend reads it live
+(`/api/registry`) to prove the inter-contract link.
+
 ### Proof transactions (recorded during verification)
 
 | Step | Transaction hash |
 |---|---|
-| Mint 1,000 RRD to e2e funder | [`3902c7e5bab688042852552fb2da1d6107570d47367d4552a16e54f5145b5188`](https://stellar.expert/explorer/testnet/tx/3902c7e5bab688042852552fb2da1d6107570d47367d4552a16e54f5145b5188) |
-| Create bounty (`repo#42`, 250 RRD) | [`88e97e1750253c8bedc88383d28c37dcf9834d9168a7e2bbc2461948b48d72c6`](https://stellar.expert/explorer/testnet/tx/88e97e1750253c8bedc88383d28c37dcf9834d9168a7e2bbc2461948b48d72c6) |
-| Release bounty to contributor | [`ee7f058ece2d81519c4762e265f82d277b2a245537878db4ef60e197db92c901`](https://stellar.expert/explorer/testnet/tx/ee7f058ece2d81519c4762e265f82d277b2a245537878db4ef60e197db92c901) |
+| Registry initialised (allowed caller = bounty) | [`9fffc4977c0e1db97884c63fcd83023804ab374fc1215edba42a4efce6ad64c5`](https://stellar.expert/explorer/testnet/tx/9fffc4977c0e1db97884c63fcd83023804ab374fc1215edba42a4efce6ad64c5) |
+| Bounty initialised (admin + registry) | [`d3823f152d7d9b84af06242bcb17ee4ff986e3f8be22d8e8541381cebb7f4ec4`](https://stellar.expert/explorer/testnet/tx/d3823f152d7d9b84af06242bcb17ee4ff986e3f8be22d8e8541381cebb7f4ec4) |
+| Create bounty (`e2e-…`, 250 RRD) | [`7ed5ec531cf9a30ccda953455143eadb784e1d7e74ab1fd62f7a67189b49244b`](https://stellar.expert/explorer/testnet/tx/7ed5ec531cf9a30ccda953455143eadb784e1d7e74ab1fd62f7a67189b49244b) |
+| Release bounty → contributor recorded in registry | [`135d978b82d439db00e409473d1e47a8c4bac20066753755bb8050a93428db74`](https://stellar.expert/explorer/testnet/tx/135d978b82d439db00e409473d1e47a8c4bac20066753755bb8050a93428db74) |
 
-These three hashes are the tail of the full proof chain exercised by
+The last two hashes are the tail of the full proof chain exercised by
 `backend/e2e/testnet-e2e.mjs`: funder account → trustline → mint → build/sign/submit
-create → event indexed → dashboard → admin release → event indexed → dashboard.
+create → event indexed → dashboard → admin release → **bounty → registry
+inter-contract call** → event indexed → dashboard → registry stats (`count=1,
+total=250`) read back from the chain.
 
 ## Live demo
 
@@ -34,19 +43,20 @@ The dashboard is hosted with public port forwarding from a GitHub Codespace:
 - Backend API: `https://crispy-palm-tree-6vggrx996gvqfxxjx-3001.app.github.dev`
 
 The backend runs the committed code with `BOUNTY_CONTRACT_ID` / `DEMO_TOKEN_ID` /
-`BOUNTY_ADMIN_ADDRESS` set to the live deployment above and `INDEXER_ENABLED=true`;
-the frontend is the Vite production build with `VITE_API_URL` set to the public
-backend URL. The indexer has already ingested the full on-chain history of the
-contract (all `bounty_created` / `bounty_released` / `bounty_reclaimed` events),
-so the dashboard shows real transactions — not seeds.
+`CONTRIBUTOR_REGISTRY_ID` / `BOUNTY_ADMIN_ADDRESS` set to the live deployment above
+and `INDEXER_ENABLED=true`; the frontend is the Vite production build with
+`VITE_API_URL` set to the public backend URL. The indexer has already ingested the
+full on-chain history of both contracts, so the dashboard shows real transactions —
+not seeds.
 
 ### Host it yourself (Codespaces or any host)
 
 ```bash
 # 1. Run the backend against the live Testnet deployment
 cd backend && npm ci && npm run build
-BOUNTY_CONTRACT_ID=CC2YEX6U7HV7L7L45HVOLVWGN2POARLPS3XICZS6KQH5Y52OTAHK7LVY \
+BOUNTY_CONTRACT_ID=CCVDE7Q3UF4O223ONMLUPYPUZWFO7STOQJWCDD3C5LELDLU4GHOFLCH7 \
 DEMO_TOKEN_ID=CCOAF5DIHLO4457S6EGQYSLXGGDRQPTO42DU6N5KVH4M2MSA2VDW2NB4 \
+CONTRIBUTOR_REGISTRY_ID=CBIA55MJABCVVMZ6BMF3GNZ7USTNJW2ZJQMO2MNUXHFPRN34JOOES3CS \
 BOUNTY_ADMIN_ADDRESS=GBRVOQSLP32BGOCYA56DCTM5PUQWW7YLBBAKVXBHDTJ6SNKVLGMWFRQI \
 FRONTEND_URL=<your-frontend-origin> node dist/server.js
 
@@ -73,10 +83,11 @@ Prerequisites: Rust with the `wasm32v1-none` target, a `stellar-cli` binary, and
 cargo install --locked stellar-cli --features opt          # or
 curl -sSL -o /tmp/stellar-cli.tar.gz <release tarball>     # prebuilt binary
 
-# Full reproducible deploy: build WASM → fund account → deploy contract + token → init
+# Full reproducible deploy: build WASMs → fund account → deploy both contracts +
+# token → init registry (allowed caller) → init bounty (admin + registry)
 ./scripts/deploy-testnet.sh
 # writes backend/.env.deployed with BOUNTY_CONTRACT_ID, DEMO_TOKEN_ID,
-# BOUNTY_ADMIN_ADDRESS, BOUNTY_ADMIN_SECRET
+# CONTRIBUTOR_REGISTRY_ID, BOUNTY_ADMIN_ADDRESS, BOUNTY_ADMIN_SECRET
 ```
 
 `scripts/deploy-testnet.sh` is the exact sequence used for the live deployment. It is
@@ -97,8 +108,9 @@ Required variables:
 
 | Variable | Value |
 |---|---|
-| `BOUNTY_CONTRACT_ID` | `CC2YEX6U7HV7L7L45HVOLVWGN2POARLPS3XICZS6KQH5Y52OTAHK7LVY` |
+| `BOUNTY_CONTRACT_ID` | `CCVDE7Q3UF4O223ONMLUPYPUZWFO7STOQJWCDD3C5LELDLU4GHOFLCH7` |
 | `DEMO_TOKEN_ID` | `CCOAF5DIHLO4457S6EGQYSLXGGDRQPTO42DU6N5KVH4M2MSA2VDW2NB4` |
+| `CONTRIBUTOR_REGISTRY_ID` | `CBIA55MJABCVVMZ6BMF3GNZ7USTNJW2ZJQMO2MNUXHFPRN34JOOES3CS` |
 | `BOUNTY_ADMIN_ADDRESS` | `GBRVOQSLP32BGOCYA56DCTM5PUQWW7YLBBAKVXBHDTJ6SNKVLGMWFRQI` |
 
 ## Run the end-to-end Testnet proof
@@ -111,8 +123,10 @@ ADMIN_SECRET=<deploy-account-secret> npm run e2e
 
 The script funds two ephemeral accounts, establishes RRD trustlines, mints demo tokens,
 creates a bounty through the build→sign→submit relay, asserts the event is indexed and
-the dashboard reflects it, releases the bounty, and asserts the released state — exiting
-non-zero on any failed assertion. It prints the fresh transaction hashes.
+the dashboard reflects it, releases the bounty (which triggers the inter-contract
+registry write), asserts the released state **and** reads the registry stats back
+(`count`, `total`), and exits non-zero on any failed assertion. It prints the fresh
+transaction hashes.
 
 ## Docker
 
@@ -121,8 +135,8 @@ docker compose up --build
 # frontend on http://localhost:8080, API proxied to the backend
 ```
 
-`BOUNTY_CONTRACT_ID`, `DEMO_TOKEN_ID`, and `BOUNTY_ADMIN_ADDRESS` default to the live
-deployment values in `docker-compose.yml`.
+`BOUNTY_CONTRACT_ID`, `DEMO_TOKEN_ID`, `CONTRIBUTOR_REGISTRY_ID`, and
+`BOUNTY_ADMIN_ADDRESS` default to the live deployment values in `docker-compose.yml`.
 
 ## Rollback / migration notes
 

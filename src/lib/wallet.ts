@@ -18,11 +18,37 @@ export type WalletAccount = {
 type FreighterApi = {
   isConnected?: () => Promise<boolean>;
   getAddress?: () => Promise<{ address?: string; publicKey?: string }>;
+  getNetwork?: () => Promise<{ network?: string; networkPassphrase?: string }>;
   signTransaction?: (
     xdr: string,
     opts?: { networkPassphrase?: string; network?: string },
   ) => Promise<{ signedXdr?: string }>;
 };
+
+/** Stellar Testnet passphrase (must match the deployed Soroban network). */
+export const TESTNET_PASSPHRASE = 'Test SDF Network ; September 2015';
+
+/**
+ * Read the network Freighter is currently on. Returns null when Freighter does
+ * not expose getNetwork (older versions) or when the wallet is disconnected.
+ */
+export async function getWalletNetwork(): Promise<string | null> {
+  const api = freighterApi();
+  if (!api?.getNetwork) return null;
+  try {
+    const result = await api.getNetwork();
+    return result.networkPassphrase ?? result.network ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** True when the wallet reports a network other than Stellar Testnet. */
+export async function isWrongNetwork(): Promise<boolean> {
+  const network = await getWalletNetwork();
+  if (network === null) return false; // cannot determine — assume fine
+  return network !== TESTNET_PASSPHRASE;
+}
 
 function freighterApi(): FreighterApi | null {
   if (typeof window === 'undefined') return null;

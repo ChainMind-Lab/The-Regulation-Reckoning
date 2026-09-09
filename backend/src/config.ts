@@ -49,6 +49,8 @@ export const config = {
   // Contract
   bountyContractId: process.env.BOUNTY_CONTRACT_ID ?? '',
   demoTokenId: process.env.DEMO_TOKEN_ID ?? '',
+  // Optional on-chain contributor registry (inter-contract communication).
+  contributorRegistryId: process.env.CONTRIBUTOR_REGISTRY_ID ?? '',
   // Admin public key (G...) used by the dashboard to gate release/reclaim UI.
   bountyAdminAddress: process.env.BOUNTY_ADMIN_ADDRESS ?? '',
 

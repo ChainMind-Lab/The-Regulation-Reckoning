@@ -62,6 +62,32 @@ describe('validatePolicyRecord', () => {
   it('accepts GLOBAL jurisdiction', () => {
     expect(validatePolicyRecord({ ...validRecord, jurisdiction: 'GLOBAL' })).toEqual([]);
   });
+
+  it('validates impact areas and survival signals against the taxonomy', () => {
+    const withValid = {
+      ...validRecord,
+      impact: ['stablecoin-issuers', 'exchanges'],
+      survival_signals: ['licensing-requirements'],
+    };
+    expect(validatePolicyRecord(withValid)).toEqual([]);
+
+    const badImpact = validatePolicyRecord({
+      ...validRecord,
+      impact: ['not-an-area'],
+    });
+    expect(badImpact).toContain('impact area invalid for eu-mica-stablecoin-rules: not-an-area');
+
+    const badSignal = validatePolicyRecord({
+      ...validRecord,
+      survival_signals: ['not-a-signal'],
+    });
+    expect(badSignal).toContain(
+      'survival signal invalid for eu-mica-stablecoin-rules: not-a-signal',
+    );
+
+    const emptyImpact = validatePolicyRecord({ ...validRecord, impact: [] });
+    expect(emptyImpact).toContain('impact must be a non-empty array for eu-mica-stablecoin-rules');
+  });
 });
 
 describe('classifyPolicyRecord', () => {
@@ -153,5 +179,44 @@ describe('analytics', () => {
     expect(snapshot1.riskIndex).toBeGreaterThan(0);
     expect(snapshot1.riskIndex).toBeLessThanOrEqual(100);
     expect(Object.keys(snapshot1.byYear)).toContain('2024');
+  });
+
+  it('exposes timeline, heatmap, impact, survival signals and jurisdiction risk', () => {
+    const raw = loadPolicyDataset();
+    persistPolicies(classifyPolicyRecords(raw));
+    const s = computeAnalytics();
+
+    expect(s.timeline.length).toBeGreaterThanOrEqual(1);
+    expect(s.timeline[0].month).toMatch(/^\d{4}-\d{2}$/);
+    expect(s.timeline[0].averageSeverity).toBeGreaterThanOrEqual(1);
+
+    expect(s.heatmap.length).toBeGreaterThanOrEqual(10);
+    const cell = s.heatmap[0];
+    expect(cell.jurisdiction).toBeTruthy();
+    expect(cell.category).toBeTruthy();
+    expect(cell.risk).toBeGreaterThanOrEqual(0);
+    expect(cell.risk).toBeLessThanOrEqual(100);
+
+    expect(s.impact.length).toBeGreaterThan(0);
+    expect(s.impact[0].totalSeverity).toBeGreaterThan(0);
+    expect(s.survivalSignals.length).toBeGreaterThan(0);
+    expect(s.survivalSignals[0].totalSeverity).toBeGreaterThan(0);
+
+    expect(Object.keys(s.jurisdictionRisk)).toContain('EU');
+    for (const risk of Object.values(s.jurisdictionRisk)) {
+      expect(risk).toBeGreaterThanOrEqual(0);
+      expect(risk).toBeLessThanOrEqual(100);
+    }
+  });
+
+  it('persists impact and survival signals in the read model', () => {
+    const raw = loadPolicyDataset();
+    persistPolicies(classifyPolicyRecords(raw));
+    const db = getDb();
+    const row = db
+      .prepare('SELECT impact, survival_signals FROM regulatory_events LIMIT 1')
+      .get() as { impact: string; survival_signals: string };
+    expect(JSON.parse(row.impact).length).toBeGreaterThan(0);
+    expect(JSON.parse(row.survival_signals).length).toBeGreaterThan(0);
   });
 });

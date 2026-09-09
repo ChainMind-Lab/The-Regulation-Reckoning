@@ -172,10 +172,15 @@ function contractScAddress(contractId: string): xdr.ScAddress {
 
 // ── Transaction building / submission ─────────────────────────────
 
-function invokeHostFunctionOp(fn: string, args: TxArg[], source: string): xdr.Operation {
+function invokeHostFunctionOp(
+  fn: string,
+  args: TxArg[],
+  source: string,
+  contractId: string = config.bountyContractId,
+): xdr.Operation {
   const hostFn = xdr.HostFunction.hostFunctionTypeInvokeContract(
     new xdr.InvokeContractArgs({
-      contractAddress: contractScAddress(config.bountyContractId),
+      contractAddress: contractScAddress(contractId),
       functionName: fn,
       args: args.map(encodeArg),
     }),
@@ -313,6 +318,50 @@ export async function readBounty(issueId: string): Promise<BountyOnChain | null>
     };
   } catch (err) {
     logger.warn('soroban.readBounty failed', { issueId, err: String(err) });
+    return null;
+  }
+}
+
+export interface ContributorStatsOnChain {
+  count: number;
+  total: string;
+}
+
+/**
+ * Read a contributor's aggregated stats directly from the on-chain registry
+ * via a simulated `stats` call (inter-contract communication proof point).
+ */
+export async function readContributorStats(
+  contributor: string,
+): Promise<ContributorStatsOnChain | null> {
+  const registryId = config.contributorRegistryId;
+  if (!registryId || !config.bountyAdminAddress) return null;
+  try {
+    const account = await sorobanServer.getAccount(config.bountyAdminAddress);
+    const tx = new TransactionBuilder(account, {
+      fee: '100',
+      networkPassphrase: config.stellarNetworkPassphrase,
+    })
+      .addOperation(
+        invokeHostFunctionOp(
+          'stats',
+          [{ type: 'address', value: contributor }],
+          config.bountyAdminAddress,
+          registryId,
+        ),
+      )
+      .setTimeout(0)
+      .build();
+    const sim = await sorobanServer.simulateTransaction(tx);
+    const retval = ('result' in sim ? sim.result?.retval : undefined) as xdr.ScVal | undefined;
+    if (!retval || retval.switch().name === 'scvVoid') return null;
+    const native = decodeScVal(retval) as Record<string, unknown>;
+    return {
+      count: Number(native.count ?? 0),
+      total: String(native.total ?? '0'),
+    };
+  } catch (err) {
+    logger.warn('soroban.readContributorStats failed', { contributor, err: String(err) });
     return null;
   }
 }

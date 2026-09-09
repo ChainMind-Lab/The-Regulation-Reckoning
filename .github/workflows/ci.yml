@@ -7,6 +7,19 @@ on:
     branches: [main]
 
 jobs:
+  secrets:
+    name: Secret scanning (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   frontend:
     name: Frontend — format, lint, typecheck, build, test, audit
     runs-on: ubuntu-latest
@@ -37,6 +50,15 @@ jobs:
 
       - name: Dependency audit
         run: npm audit --audit-level=high
+
+      - name: Generate SBOM (CycloneDX)
+        run: npx --yes @cyclonedx/cyclonedx-npm --output-file sbom.frontend.json
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-frontend
+          path: sbom.frontend.json
 
   backend:
     name: Backend — format, lint, typecheck, build, test, audit
@@ -73,6 +95,15 @@ jobs:
       - name: Dependency audit
         run: npm audit --audit-level=high
 
+      - name: Generate SBOM (CycloneDX)
+        run: npx --yes @cyclonedx/cyclonedx-npm --output-file sbom.backend.json
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-backend
+          path: backend/sbom.backend.json
+
   contracts:
     name: Contracts — Soroban fmt, clippy, tests, WASM build
     runs-on: ubuntu-latest
@@ -92,20 +123,104 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             contracts/bounty/target
-          key: cargo-${{ hashFiles('contracts/bounty/Cargo.toml') }}
+            contracts/contributors/target
+          key: cargo-${{ hashFiles('contracts/*/Cargo.toml') }}
 
-      - name: Format check
+      - name: Format check (bounty)
         working-directory: contracts/bounty
         run: cargo fmt --check
 
-      - name: Clippy
+      - name: Clippy (bounty)
         working-directory: contracts/bounty
         run: cargo clippy --all-targets -- -D warnings
 
-      - name: Test
+      - name: Test (bounty)
         working-directory: contracts/bounty
         run: cargo test
 
-      - name: Build release WASM
+      - name: Build bounty WASM
         working-directory: contracts/bounty
         run: cargo build --release --target wasm32v1-none
+
+      - name: Format check (contributors)
+        working-directory: contracts/contributors
+        run: cargo fmt --check
+
+      - name: Clippy (contributors)
+        working-directory: contracts/contributors
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Test (contributors)
+        working-directory: contracts/contributors
+        run: cargo test
+
+      - name: Build contributors WASM
+        working-directory: contracts/contributors
+        run: cargo build --release --target wasm32v1-none
+
+  docker:
+    name: Docker — build images + Trivy vulnerability scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build backend image
+        run: docker build -t trr-backend:ci ./backend
+
+      - name: Build frontend image
+        run: docker build -t trr-frontend:ci .
+
+      - name: Trivy scan backend image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: trr-backend:ci
+          format: sarif
+          output: trivy-backend.sarif
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+
+      - name: Trivy scan frontend image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: trr-frontend:ci
+          format: sarif
+          output: trivy-frontend.sarif
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+
+      - name: Trivy filesystem scan (repo deps + configs)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: sarif
+          output: trivy-fs.sarif
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+
+      - name: Upload Trivy results
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-sarif
+          path: |
+            trivy-backend.sarif
+            trivy-frontend.sarif
+            trivy-fs.sarif
+
+      - name: Upload Trivy SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-backend.sarif
+        continue-on-error: true
+
+      - name: Upload Trivy SARIF to GitHub Security tab (frontend)
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-frontend.sarif
+        continue-on-error: true
+
+      - name: Upload Trivy SARIF to GitHub Security tab (fs)
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-fs.sarif
+        continue-on-error: true

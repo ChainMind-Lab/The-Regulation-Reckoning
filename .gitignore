@@ -21,3 +21,4 @@ backend/.env.deployed
 
 # Rust build output (keep Cargo.lock and test_snapshots)
 contracts/bounty/target/
+contracts/contributors/target/

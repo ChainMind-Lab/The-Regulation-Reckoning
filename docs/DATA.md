@@ -13,6 +13,13 @@ rows and always produces the same analytics.
 
 Every policy record carries `source_name` and `source_url` so claims are verifiable.
 
+### Enrichment (`backend/scripts/enrich-policy-data.mjs`)
+
+Each record is additionally classified with curated **ecosystem-impact areas** and
+**project-survival signals** derived deterministically from its category + severity
+taxonomy (`impact`, `survivalSignals` columns). The enrichment script is
+version-controlled and reproducible (run: `node backend/scripts/enrich-policy-data.mjs`).
+
 ## Pipeline (`backend/src/services/ingest/`)
 
 ### `ingestPolicies()`
@@ -40,7 +47,7 @@ same table contents and the same analytics output.
 
 SQLite (`node:sqlite`, no native deps) at `data/regulation-reckoning.db`:
 
-- `regulatory_events(id, title, jurisdiction, category, event_date, severity, summary, source_name, source_url, ingestion_source)`
+- `regulatory_events(id, title, jurisdiction, category, event_date, severity, summary, source_name, source_url, ingestion_source, impact, survival_signals)`
 - `issues(id, repo, title, points, tags, state, source, ingested_at)`
 - `soroban_events(id, tx_hash UNIQUE, ledger, contract_id, topic, issue_id, payload, created_at)`
 - `bounties(issue_id PRIMARY KEY, funder, contributor, token, amount, released, created_tx, released_tx, updated_at)` — derived from indexed events
@@ -51,6 +58,12 @@ Pure functions over the persisted rows — deterministic, unit-tested, no random
 
 - `totals` — event count, distinct jurisdictions/categories, average severity.
 - `byJurisdiction`, `byCategory`, `bySeverity`, `byYear` — distribution maps.
+- `timeline` — monthly event counts + average severity (chart source).
+- `heatmap` — jurisdiction × category cells with severity-weighted risk 0–100
+  (heat map source).
+- `impact` — ecosystem-impact area aggregation (count + total severity).
+- `survivalSignals` — project-survival signal aggregation (count + total severity).
+- `jurisdictionRisk` — the risk index computed per jurisdiction.
 - **Risk index (0–100)**: `round( Σ(severity × category_weight) / (N × 5) × 100 )`
   where category weights are:
 

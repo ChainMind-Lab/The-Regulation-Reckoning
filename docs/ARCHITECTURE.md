@@ -12,9 +12,12 @@ dashboard is a thin client over the backend API.
                         │              Stellar Testnet               │
                         │                                            │
   Freighter wallet ─────┤  Soroban RPC (soroban-testnet.stellar.org) │
-  (browser, signs XDR)  │  · bounty contract CC2YEX6U…LVY            │
+  (browser, signs XDR)  │  · bounty contract CCVDE7Q…LCH7            │
+                        │  · contributors registry CBIA55M…ES3CS     │
                         │  · RRD token CCOAF5D…2NB4                  │
                         │  Horizon (network status, payments)        │
+                        │  (bounty → registry: env.invoke_contract  │
+                        │   records payouts on release)              │
                         └──────┬────────────────────────┬────────────┘
                                │                        │
         POST /api/tx/build     │                        │ getEvents() (ledger cursor)
@@ -42,19 +45,35 @@ dashboard is a thin client over the backend API.
 
 ## Components
 
-### Soroban contract (`contracts/bounty`)
+### Soroban contracts
+
+#### Bounty escrow (`contracts/bounty`)
 
 - `create(funder, token, amount, issue_id)` — locks `amount` of `token` in escrow
   for an issue. Emits `bounty_created`.
 - `release(issue_id, contributor)` — admin-only; transfers escrowed tokens to the
-  contributor. Emits `bounty_released`.
+  contributor **and invokes `record` on the contributors registry** (inter-contract
+  call). Emits `bounty_released`.
 - `reclaim(issue_id)` — funder-only; returns unclaimed funds. Emits `bounty_reclaimed`.
 - `get_bounty(issue_id)` — on-chain read used for verification.
-- `init(admin)` — one-time admin bootstrap. Emits `admin_initialised`.
+- `init(admin, registry)` — one-time bootstrap: admin + registry contract ID.
+  Emits `admin_initialised`.
 
 All state changes emit typed events (Soroban `#[contractevent]`), which the indexer
-consumes. The contract has 19 tests covering authorization, validation, idempotency
-(re-creating/releasing/reclaiming is a no-op error, never a double spend), and events.
+consumes. The contract has 21 tests covering authorization, validation, idempotency
+(re-creating/releasing/reclaiming is a no-op error, never a double spend), events,
+and the inter-contract registry write.
+
+#### Contributors registry (`contracts/contributors`)
+
+- `init(allowed)` — one-time bootstrap: the only caller allowed to write.
+- `record(contributor, issue_id, amount)` — requires the allowed caller's auth
+  (the bounty contract). Emits `contributor_recorded`.
+- `stats(address)` — `{ count, total }`; anyone can read.
+
+The registry gives the payout history an on-chain home outside the bounty contract
+itself and is read live by the backend (`GET /api/contributors/:address`). It has 7
+tests covering authorization (direct callers rejected), validation, math, and events.
 
 ### Backend (`backend/`)
 

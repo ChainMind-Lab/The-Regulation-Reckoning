@@ -12,9 +12,12 @@ RUN npm run build
 # ── Runtime stage ─────────────────────────────────────────────────
 FROM nginx:1.27-alpine
 
-# Proxy /api and /health to the backend service (docker-compose network).
+# Security headers + /api proxy to the backend service (docker-compose network).
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
+
+# Run nginx as an unprivileged user (nginx image convention).
+USER nginx
 
 EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \

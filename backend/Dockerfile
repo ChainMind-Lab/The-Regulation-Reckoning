@@ -22,8 +22,10 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/data ./data
 
 # SQLite read-model lives on a volume so it survives restarts.
-RUN mkdir -p /app/data/db
+# The container runs as a non-root user; the volume must be writable by it.
+RUN mkdir -p /app/data/db && chown -R node:node /app
 VOLUME /app/data/db
+USER node
 
 EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

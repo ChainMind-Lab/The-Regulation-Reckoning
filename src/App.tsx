@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import NavBar from './components/NavBar';
 import HeroSection from './components/HeroSection';
 import NetworkStatusCard from './components/NetworkStatusCard';
+import VerificationPanel from './components/VerificationPanel';
 import BountyCard from './components/BountyCard';
 import BountyForm from './components/BountyForm';
 import EventsFeed from './components/EventsFeed';
@@ -19,6 +20,21 @@ import type {
 } from './lib/types';
 
 type LoadState = 'loading' | 'ready' | 'error';
+
+function Skeleton() {
+  return (
+    <div className="skeleton-stack" data-testid="loading">
+      <div className="skeleton skeleton-wide" />
+      <div className="skeleton skeleton-grid">
+        <div className="skeleton" />
+        <div className="skeleton" />
+      </div>
+      <div className="skeleton" />
+      <div className="skeleton" />
+      <div className="skeleton" />
+    </div>
+  );
+}
 
 export default function App() {
   const [account, setAccount] = useState<WalletAccount | null>(null);
@@ -71,11 +87,7 @@ export default function App() {
       <div className="page">
         <HeroSection />
 
-        {state === 'loading' && (
-          <div className="state-box" data-testid="loading">
-            <span className="pulse" /> Loading data from the backend…
-          </div>
-        )}
+        {state === 'loading' && <Skeleton />}
         {state === 'error' && (
           <div className="state-box error" data-testid="load-error">
             <p>{error}</p>
@@ -92,6 +104,8 @@ export default function App() {
         {state === 'ready' && (
           <>
             <NetworkStatusCard status={network} error={false} />
+
+            <VerificationPanel contract={contract} network={network} events={events} />
 
             <section id="bounties">
               <div className="section-row">

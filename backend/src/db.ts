@@ -110,8 +110,9 @@ CREATE TABLE IF NOT EXISTS indexer_state (
 `;
 
 const MIGRATIONS: string[] = [
-  // v1 is the base schema above; future migrations append here, e.g.:
-  // "ALTER TABLE bounties ADD COLUMN reclaimed_tx TEXT;",
+  // v2: ecosystem-impact areas and project-survival signals per policy record.
+  "ALTER TABLE regulatory_events ADD COLUMN impact TEXT NOT NULL DEFAULT '[]';",
+  "ALTER TABLE regulatory_events ADD COLUMN survival_signals TEXT NOT NULL DEFAULT '[]';",
 ];
 
 function migrate(database: DatabaseSync): void {

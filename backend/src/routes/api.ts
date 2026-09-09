@@ -14,6 +14,7 @@ import {
   buildContractTransaction,
   isContractInitialised,
   readBounty,
+  readContributorStats,
   submitSignedTransaction,
   SorobanError,
   type TxArg,
@@ -87,11 +88,17 @@ router.get('/policies', (_req, res) => {
     .prepare(
       `SELECT id, title, jurisdiction, category, event_date AS eventDate, severity,
               summary, source_name AS sourceName, source_url AS sourceUrl,
-              ingestion_source AS source
+              ingestion_source AS source, impact, survival_signals AS survivalSignals
        FROM regulatory_events ORDER BY event_date DESC`,
     )
-    .all();
-  res.json(rows);
+    .all() as Array<Record<string, unknown>>;
+  res.json(
+    rows.map((r) => ({
+      ...r,
+      impact: JSON.parse(String(r.impact ?? '[]')),
+      survivalSignals: JSON.parse(String(r.survivalSignals ?? '[]')),
+    })),
+  );
 });
 
 // GET /api/analytics — reproducible aggregates over the policy dataset
@@ -109,6 +116,7 @@ router.get(
       configured: isContractConfigured(),
       contractId: config.bountyContractId || null,
       tokenId: config.demoTokenId || null,
+      registryId: config.contributorRegistryId || null,
       admin: config.bountyAdminAddress || null,
       network: config.stellarNetworkPassphrase,
       rpcUrl: config.sorobanRpcUrl,
@@ -260,6 +268,26 @@ router.post(
       if (err instanceof SorobanError) throw err;
       throw new ApiError(`Failed to submit transaction: ${String(err)}`, 502, 'SUBMIT_FAILED');
     }
+  }),
+);
+
+// GET /api/contributors/:address — live on-chain registry stats
+router.get(
+  '/contributors/:address',
+  asyncHandler(async (req, res) => {
+    const address = String(req.params.address ?? '');
+    if (!/^G[A-Z2-7]{55}$/.test(address)) {
+      throw new ApiError('A valid G... address is required', 400, 'BAD_ADDRESS');
+    }
+    const stats = await readContributorStats(address);
+    if (!stats) {
+      throw new ApiError(
+        'Registry not configured or contributor not found',
+        config.contributorRegistryId ? 404 : 503,
+        config.contributorRegistryId ? 'CONTRIBUTOR_NOT_FOUND' : 'REGISTRY_NOT_CONFIGURED',
+      );
+    }
+    res.json({ contributor: address, ...stats, verified: true, source: 'stellar' });
   }),
 );
 

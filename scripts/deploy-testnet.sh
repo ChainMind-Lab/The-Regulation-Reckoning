@@ -3,13 +3,15 @@
 # Reproducible Stellar Testnet deployment for The Regulation Reckoning.
 #
 # What it does (each step prints the on-chain artifacts):
-#   1. Builds the Soroban bounty contract to WASM (wasm32v1-none).
+#   1. Builds both Soroban contracts (bounty + contributors) to WASM (wasm32v1-none).
 #   2. Generates a fresh deploy account (or reuses DEPLOY_SECRET if set).
 #   3. Funds it via the Testnet Friendbot.
 #   4. Deploys the bounty contract and records its ID.
-#   5. Deploys the RRD demo token (Soroban Asset Contract) and records its ID.
-#   6. Initialises the contract with the deploy account as admin.
-#   7. Writes backend/.env.deployed with every value the backend needs.
+#   5. Deploys the contributors registry contract and records its ID.
+#   6. Deploys the RRD demo token (Soroban Asset Contract) and records its ID.
+#   7. Initialises the registry (allowed caller = bounty contract) and the
+#      bounty contract (admin + registry) — the inter-contract link.
+#   8. Writes backend/.env.deployed with every value the backend needs.
 #
 # Requirements: cargo (rust) with wasm32v1-none target, a stellar-cli binary
 # (STELLAR_CLI env var, defaults to `stellar` on PATH or /tmp/stellar-cli/stellar),
@@ -48,6 +50,12 @@ echo "── Building bounty contract WASM ────────────�
 WASM="contracts/bounty/target/wasm32v1-none/release/regulation_reckoning_bounty.wasm"
 [ -f "$WASM" ] || { echo "ERROR: WASM not found at $WASM" >&2; exit 1; }
 echo "WASM: $WASM ($(wc -c < "$WASM") bytes)"
+
+echo "── Building contributors registry WASM ───────────────────────"
+(cd contracts/contributors && cargo build --release --target wasm32v1-none)
+REG_WASM="contracts/contributors/target/wasm32v1-none/release/regulation_reckoning_contributors.wasm"
+[ -f "$REG_WASM" ] || { echo "ERROR: WASM not found at $REG_WASM" >&2; exit 1; }
+echo "WASM: $REG_WASM ($(wc -c < "$REG_WASM") bytes)"
 
 # Generate a Stellar keypair with zero dependencies (node:crypto + RFC4648
 # base32 + CRC16-XModem, little-endian checksum — byte-compatible with
@@ -99,6 +107,14 @@ BOUNTY_ID=$("$STELLAR" contract deploy \
   --network-passphrase "$PASSPHRASE" 2>&1 | tail -1)
 echo "Bounty contract: $BOUNTY_ID"
 
+echo "── Deploying contributors registry ────────────────────────────"
+REGISTRY_ID=$("$STELLAR" contract deploy \
+  --wasm "$REG_WASM" \
+  --source-account "$SECRET" \
+  --rpc-url "$RPC_URL" \
+  --network-passphrase "$PASSPHRASE" 2>&1 | tail -1)
+echo "Registry contract: $REGISTRY_ID"
+
 echo "── Deploying RRD demo token (SAC) ────────────────────────────"
 TOKEN_ID=$("$STELLAR" contract asset deploy \
   --asset "RRD:${PUBLIC}" \
@@ -107,14 +123,23 @@ TOKEN_ID=$("$STELLAR" contract asset deploy \
   --network-passphrase "$PASSPHRASE" 2>&1 | tail -1)
 echo "Demo token: $TOKEN_ID"
 
+echo "── Initialising contributors registry ────────────────────────"
+"$STELLAR" contract invoke \
+  --id "$REGISTRY_ID" \
+  --source-account "$SECRET" \
+  --rpc-url "$RPC_URL" \
+  --network-passphrase "$PASSPHRASE" \
+  -- init --admin "$PUBLIC" --allowed "$BOUNTY_ID" >/dev/null
+echo "Registry initialised (admin: $PUBLIC, allowed caller: $BOUNTY_ID)"
+
 echo "── Initialising bounty contract ──────────────────────────────"
 "$STELLAR" contract invoke \
   --id "$BOUNTY_ID" \
   --source-account "$SECRET" \
   --rpc-url "$RPC_URL" \
   --network-passphrase "$PASSPHRASE" \
-  -- init --admin "$PUBLIC" >/dev/null
-echo "Contract initialised (admin: $PUBLIC)"
+  -- init --admin "$PUBLIC" --registry "$REGISTRY_ID" >/dev/null
+echo "Contract initialised (admin: $PUBLIC, registry: $REGISTRY_ID)"
 
 echo "── Writing backend/.env.deployed ─────────────────────────────"
 cat > backend/.env.deployed <<EOF
@@ -122,6 +147,7 @@ cat > backend/.env.deployed <<EOF
 # Testnet deployment — do not use these values in production.
 BOUNTY_CONTRACT_ID=$BOUNTY_ID
 DEMO_TOKEN_ID=$TOKEN_ID
+CONTRIBUTOR_REGISTRY_ID=$REGISTRY_ID
 BOUNTY_ADMIN_ADDRESS=$PUBLIC
 BOUNTY_ADMIN_SECRET=$SECRET
 SOROBAN_RPC_URL=$RPC_URL
@@ -132,9 +158,10 @@ chmod 600 backend/.env.deployed
 
 echo
 echo "── Done ──────────────────────────────────────────────────────"
-echo "  bounty contract: $BOUNTY_ID"
-echo "  demo token:      $TOKEN_ID"
-echo "  admin:           $PUBLIC"
-echo "  env file:        backend/.env.deployed (keep it secret)"
+echo "  bounty contract:   $BOUNTY_ID"
+echo "  contributors reg.: $REGISTRY_ID"
+echo "  demo token:        $TOKEN_ID"
+echo "  admin:             $PUBLIC"
+echo "  env file:          backend/.env.deployed (keep it secret)"
 echo
 echo "Next: cp backend/.env.deployed backend/.env and start the backend."

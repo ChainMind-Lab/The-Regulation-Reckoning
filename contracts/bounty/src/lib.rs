@@ -28,7 +28,8 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contracterror, contractevent, contractimpl, contracttype, token, Address, Env, String,
+    contract, contracterror, contractevent, contractimpl, contracttype, token, Address, Env,
+    IntoVal, String, Symbol, Vec,
 };
 
 /// Contract-level errors. Returning typed errors (instead of opaque panics)
@@ -115,6 +116,8 @@ pub struct BountyReclaimed {
 pub enum DataKey {
     Bounty(String),
     Admin,
+    /// Optional on-chain contributor registry (inter-contract communication).
+    Registry,
 }
 
 #[contract]
@@ -122,15 +125,21 @@ pub struct BountyContract;
 
 #[contractimpl]
 impl BountyContract {
-    /// Initialise the contract with an immutable admin address.
+    /// Initialise the contract with an immutable admin address and an optional
+    /// contributor registry (`contracts/contributors`). When a registry is set,
+    /// every successful `release` records the payout on-chain in it — the
+    /// inter-contract communication layer of the product.
     ///
     /// Errors with [`BountyError::AlreadyInitialised`] if called twice.
-    pub fn init(env: Env, admin: Address) -> Result<(), BountyError> {
+    pub fn init(env: Env, admin: Address, registry: Option<Address>) -> Result<(), BountyError> {
         if env.storage().instance().has(&DataKey::Admin) {
             return Err(BountyError::AlreadyInitialised);
         }
         admin.require_auth();
         env.storage().instance().set(&DataKey::Admin, &admin);
+        if let Some(registry) = registry {
+            env.storage().instance().set(&DataKey::Registry, &registry);
+        }
         AdminInitialised {
             admin: admin.clone(),
         }
@@ -232,6 +241,22 @@ impl BountyContract {
         env.storage()
             .instance()
             .set(&DataKey::Bounty(issue_id.clone()), &bounty);
+
+        // Inter-contract communication: record the payout in the contributor
+        // registry when one is configured. If the registry call fails, the
+        // entire release transaction rolls back (atomic).
+        let registry: Option<Address> = env.storage().instance().get(&DataKey::Registry);
+        if let Some(registry) = registry {
+            let args = Vec::from_array(
+                &env,
+                [
+                    contributor.clone().into_val(&env),
+                    issue_id.clone().into_val(&env),
+                    amount.into_val(&env),
+                ],
+            );
+            let _: () = env.invoke_contract(&registry, &Symbol::new(&env, "record"), args);
+        }
 
         BountyReleased {
             issue_id,
@@ -341,7 +366,7 @@ mod tests {
         token_admin.mint(&funder, &1_000_000);
 
         let client = BountyContractClient::new(&env, &contract_id);
-        client.init(&admin);
+        client.init(&admin, &None);
 
         let issue = String::from_str(&env, "issue-42");
         Harness {
@@ -452,8 +477,7 @@ mod tests {
         let admin = Address::generate(&env);
         let contract_id = env.register(BountyContract, ());
         let client = BountyContractClient::new(&env, &contract_id);
-
-        client.init(&admin);
+        client.init(&admin, &None);
 
         let events = event_summaries(&env, &contract_id);
         assert_eq!(events.len(), 1);
@@ -529,7 +553,7 @@ mod tests {
         let h = harness();
         let client = client(&h.env, &h.contract_id);
         let another_admin = Address::generate(&h.env);
-        let res = client.try_init(&another_admin);
+        let res = client.try_init(&another_admin, &None);
         assert_eq!(res, Err(Ok(BountyError::AlreadyInitialised)));
     }
 
@@ -676,15 +700,21 @@ mod tests {
 
         let client = BountyContractClient::new(&env, &contract_id);
 
-        // init — signed by admin.
+        // init — signed by admin, no registry.
         let init_inv = invoke(
             &contract_id,
             "init",
-            Vec::from_array(&env, [admin.clone().into_val(&env)]),
+            Vec::from_array(
+                &env,
+                [
+                    admin.clone().into_val(&env),
+                    Option::<Address>::None.into_val(&env),
+                ],
+            ),
             &[],
         );
         env.mock_auths(&[contract_auth(&admin, &init_inv)]);
-        client.init(&admin);
+        client.init(&admin, &None);
 
         // create — signed by funder, with the token transfer as sub-invocation.
         let transfer = invoke(
@@ -727,25 +757,28 @@ mod tests {
         let contract_id = env.register(BountyContract, ());
         let client = BountyContractClient::new(&env, &contract_id);
 
+        let init_args = Vec::from_array(
+            &env,
+            [
+                admin.clone().into_val(&env),
+                Option::<Address>::None.into_val(&env),
+            ],
+        );
+        let init_inv = invoke(&contract_id, "init", init_args, &[]);
+
         // No auths at all → rejected.
-        let res = client.try_init(&admin);
+        let res = client.try_init(&admin, &None);
         assert!(res.is_err());
 
         // Authorize a non-admin signer → rejected.
         let imposter = Address::generate(&env);
-        let init_inv = invoke(
-            &contract_id,
-            "init",
-            Vec::from_array(&env, [admin.clone().into_val(&env)]),
-            &[],
-        );
         env.mock_auths(&[contract_auth(&imposter, &init_inv)]);
-        let res = client.try_init(&admin);
+        let res = client.try_init(&admin, &None);
         assert!(res.is_err());
 
         // Authorize the admin's invocation → accepted.
         env.mock_auths(&[contract_auth(&admin, &init_inv)]);
-        client.init(&admin);
+        client.init(&admin, &None);
         assert!(client.is_initialised());
     }
 
@@ -770,11 +803,17 @@ mod tests {
         let init_inv = invoke(
             &contract_id,
             "init",
-            Vec::from_array(&env, [admin.clone().into_val(&env)]),
+            Vec::from_array(
+                &env,
+                [
+                    admin.clone().into_val(&env),
+                    Option::<Address>::None.into_val(&env),
+                ],
+            ),
             &[],
         );
         env.mock_auths(&[contract_auth(&admin, &init_inv)]);
-        client.init(&admin);
+        client.init(&admin, &None);
 
         // Unauthorized create → rejected.
         let res = client.try_create(&funder, &token_id, &100, &issue_id);
@@ -927,6 +966,137 @@ mod tests {
         // Funds returned to the funder (100 back + 900 remaining = 1000).
         assert_eq!(token(&env, &token_id).balance(&funder), 1000);
         assert_eq!(token(&env, &token_id).balance(&contract_id), 0);
+    }
+
+    // ── Inter-contract communication (contributor registry) ────────
+    //
+    // A minimal registry with the same `record`/`stats` interface as
+    // `contracts/contributors`, registered in-test so the bounty contract's
+    // cross-contract call can be exercised without shipping the registry wasm.
+
+    #[contract]
+    struct TestRegistry;
+
+    #[contractimpl]
+    impl TestRegistry {
+        pub fn init(env: Env, admin: Address, allowed_caller: Address) {
+            admin.require_auth();
+            env.storage()
+                .instance()
+                .set(&Symbol::new(&env, "admin"), &admin);
+            env.storage()
+                .instance()
+                .set(&Symbol::new(&env, "allowed"), &allowed_caller);
+        }
+
+        pub fn record(env: Env, contributor: Address, issue_id: String, amount: i128) {
+            let allowed: Address = env
+                .storage()
+                .instance()
+                .get(&Symbol::new(&env, "allowed"))
+                .unwrap();
+            // Same cross-contract auth as the real registry: only the configured
+            // caller (the bounty contract) can satisfy this.
+            allowed.require_auth();
+            let mut stats: Map<Address, (u32, i128)> = env
+                .storage()
+                .instance()
+                .get(&Symbol::new(&env, "stats"))
+                .unwrap_or_else(|| Map::new(&env));
+            let entry = stats.get(contributor.clone()).unwrap_or((0, 0));
+            stats.set(contributor, (entry.0 + 1, entry.1 + amount));
+            env.storage()
+                .instance()
+                .set(&Symbol::new(&env, "stats"), &stats);
+            env.storage()
+                .instance()
+                .set(&Symbol::new(&env, "last_issue"), &issue_id);
+        }
+
+        pub fn stats(env: Env, contributor: Address) -> (u32, i128) {
+            let stats: Map<Address, (u32, i128)> = env
+                .storage()
+                .instance()
+                .get(&Symbol::new(&env, "stats"))
+                .unwrap_or_else(|| Map::new(&env));
+            stats.get(contributor).unwrap_or((0, 0))
+        }
+    }
+
+    fn harness_with_registry() -> (Harness, Address) {
+        let env = Env::default();
+        env.mock_all_auths();
+        let admin = Address::generate(&env);
+        let funder = Address::generate(&env);
+        let contributor = Address::generate(&env);
+        let contract_id = env.register(BountyContract, ());
+        let token_id = env
+            .register_stellar_asset_contract_v2(admin.clone())
+            .address();
+        let token_admin = StellarAssetClient::new(&env, &token_id);
+        token_admin.mint(&funder, &1_000_000);
+
+        let registry_id = env.register(TestRegistry, ());
+        let registry_client = TestRegistryClient::new(&env, &registry_id);
+        registry_client.init(&admin, &contract_id);
+
+        let client = BountyContractClient::new(&env, &contract_id);
+        client.init(&admin, &Some(registry_id.clone()));
+
+        let issue = String::from_str(&env, "issue-42");
+        (
+            Harness {
+                env,
+                contract_id,
+                funder,
+                contributor,
+                token_id,
+                issue,
+            },
+            registry_id,
+        )
+    }
+
+    #[test]
+    fn test_release_records_contributor_in_registry() {
+        let (h, registry_id) = harness_with_registry();
+        let env = &h.env;
+        let client = client(env, &h.contract_id);
+        let registry_client = TestRegistryClient::new(env, &registry_id);
+        let other = Address::generate(env);
+
+        assert_eq!(registry_client.stats(&h.contributor), (0, 0));
+        assert_eq!(registry_client.stats(&other), (0, 0));
+
+        client.create(&h.funder, &h.token_id, &250, &h.issue);
+        client.release(&h.issue, &h.contributor);
+
+        // The bounty contract's release recorded the payout in the registry,
+        // keyed per contributor.
+        assert_eq!(registry_client.stats(&h.contributor), (1, 250));
+        // Other addresses were not recorded.
+        assert_eq!(registry_client.stats(&other), (0, 0));
+
+        // Bounty state is settled and funds moved as before.
+        let bounty = client.get_bounty(&h.issue);
+        assert!(bounty.released);
+        assert_eq!(token(env, &h.token_id).balance(&h.contributor), 250);
+        assert_eq!(token(env, &h.token_id).balance(&h.contract_id), 0);
+    }
+
+    #[test]
+    fn test_release_without_registry_still_works() {
+        let h = harness();
+        let env = &h.env;
+        let client = client(env, &h.contract_id);
+
+        client.create(&h.funder, &h.token_id, &250, &h.issue);
+        client.release(&h.issue, &h.contributor);
+
+        // No registry configured → release succeeds without a record call.
+        let bounty = client.get_bounty(&h.issue);
+        assert!(bounty.released);
+        assert_eq!(token(env, &h.token_id).balance(&h.contributor), 250);
     }
 
     #[test]

@@ -36,26 +36,56 @@ secrets handling, transport, contract hardening, and the checks enforced in CI.
   `trust proxy` appropriately so rate limiting keys real client IPs
   (see `backend/src/server.ts`).
 
-## Contract hardening (`contracts/bounty`)
+## Contract hardening
+
+### `contracts/bounty`
 
 - **Authorization**: `release` requires the admin's signature; `reclaim` requires the
   funder's signature; `create` requires the funder's authorization to transfer the
   escrowed tokens (`require_auth` on every privileged path).
+- **Inter-contract auth**: on `release`, the bounty contract calls the contributors
+  registry's `record` with its own auth; the registry rejects any other caller
+  (`allowed_caller.require_auth()`), so only the bounty can write stats.
 - **Validation**: amounts must be `> 0`; issue IDs are non-empty strings; duplicate
   creation, release, or reclaim is rejected with typed errors (`AlreadyExists`,
   `NotFunded`, `NotReleased`…).
 - **Events**: every state change emits a typed event with enough data for indexers
   (funder, contributor, amount, issue id) — no sensitive data is emitted.
-- 19 unit tests cover authorization failures (wrong caller), invalid inputs,
-  idempotency/replay, and event contents.
+- 21 unit tests cover authorization failures (wrong caller), invalid inputs,
+  idempotency/replay, event contents, and the inter-contract registry write.
+
+### `contracts/contributors`
+
+- **Authorization**: `record` requires the allowed caller (the bounty contract) to
+  have authorized the invocation — direct calls from any other address are rejected
+  (unit-tested with granular auth mocks).
+- **Validation**: contributor must be a valid address; amounts must be `> 0`;
+  duplicate records for the same issue id are rejected.
+- 7 unit tests cover authorization, validation, accumulation math, and events.
+
+## Indexer resilience
+
+- Duplicate-event protection (unique `(tx_hash, topic, ledger)` constraint).
+- Cursor persistence + restart recovery (`indexer_cursor` table).
+- RPC-failure containment (bounded retries, no crash, health reflects `soroban_up`).
+- Ledger-gap detection when the RPC returns a non-contiguous cursor.
+- DB-failure rollback: a failed insert rolls back the batch without corrupting the
+  cursor. (14 indexer tests, including injected RPC/DB failures.)
 
 ## CI security checks
 
 `.github/workflows/ci.yml` runs for every push/PR:
 
+- **gitleaks** secret scanning (full history)
+- **Trivy** container-image scans (backend + frontend) and filesystem scan,
+  HIGH/CRITICAL, SARIF uploaded to the Security tab
+- **CycloneDX SBOM** generated for both Node packages and uploaded as artifacts
 - `npm audit --audit-level=high` (frontend + backend)
-- `cargo clippy --all-targets -- -D warnings` and `cargo fmt --check`
+- `cargo clippy --all-targets -- -D warnings` and `cargo fmt --check` (both contracts)
 - lint (ESLint), typecheck (`tsc --noEmit`), full test suites, and production builds
+- Dockerfiles run as non-root (backend `node` user, nginx `nginx` user); nginx sets
+  security headers (X-Content-Type-Options, X-Frame-Options, Referrer-Policy,
+  Permissions-Policy)
 
 ## Reporting a vulnerability
 

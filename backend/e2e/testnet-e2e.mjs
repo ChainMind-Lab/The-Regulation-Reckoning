@@ -248,6 +248,20 @@ async function main() {
     'dashboard reflects released state with contributor',
   );
 
+  // ── Step 6: inter-contract proof — the release recorded the payout in the
+  // on-chain contributor registry (bounty contract → registry contract).
+  await pollUntil(
+    async () => {
+      try {
+        const stats = await get(`/api/contributors/${contributor.publicKey()}`);
+        return stats.verified && Number(stats.count) === 1 && stats.total === '250';
+      } catch {
+        return false;
+      }
+    },
+    'contributor registry shows count=1, total=250 on-chain',
+  );
+
   console.log('\n── E2E PASSED ─────────────────────────────────────────────');
   console.log(`  issue:      ${issueId}`);
   console.log(`  create tx:  ${createTx}`);

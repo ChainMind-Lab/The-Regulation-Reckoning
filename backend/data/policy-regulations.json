@@ -1,7 +1,7 @@
 {
   "_meta": {
     "description": "Curated dataset of regulatory developments relevant to stablecoin networks, crypto markets and cross-border payments. Each entry carries a primary public source. Ingestion validates, classifies and persists this data; analytics derive reproducible aggregates. See docs/DATA.md for provenance and update instructions.",
-    "schemaVersion": 1,
+    "schemaVersion": 2,
     "updatedAt": "2026-09-09"
   },
   "events": [
@@ -15,7 +15,17 @@
       "sourceName": "European Commission",
       "sourceUrl": "https://finance.ec.europa.eu/digital-finance/markets-crypto-assets-mica_en",
       "scope": "regional",
-      "enforcement": "action"
+      "enforcement": "action",
+      "impact": [
+        "stablecoin-issuers",
+        "institutional-adoption",
+        "wallets-and-custody"
+      ],
+      "survival_signals": [
+        "reserve-and-audit-requirements",
+        "licensing-requirements",
+        "market-access-barrier"
+      ]
     },
     {
       "id": "eu-mica-full-application",
@@ -27,7 +37,17 @@
       "sourceName": "European Securities and Markets Authority",
       "sourceUrl": "https://www.esma.europa.eu/publications-and-data/publications/esma-public-statement-mica-crypto-asset-service-providers",
       "scope": "regional",
-      "enforcement": "action"
+      "enforcement": "action",
+      "impact": [
+        "exchanges",
+        "defi-protocols",
+        "tokenization"
+      ],
+      "survival_signals": [
+        "licensing-requirements",
+        "disclosure-burden",
+        "market-access-barrier"
+      ]
     },
     {
       "id": "eu-dora-application",
@@ -39,7 +59,16 @@
       "sourceName": "European Commission",
       "sourceUrl": "https://finance.ec.europa.eu/digital-finance/digital-operational-resilience-act-dora_en",
       "scope": "regional",
-      "enforcement": "action"
+      "enforcement": "action",
+      "impact": [
+        "infrastructure-providers",
+        "exchanges",
+        "institutional-adoption"
+      ],
+      "survival_signals": [
+        "operational-risk-management",
+        "higher-compliance-cost"
+      ]
     },
     {
       "id": "fatf-travel-rule-guidance",
@@ -51,7 +80,16 @@
       "sourceName": "Financial Action Task Force",
       "sourceUrl": "https://www.fatf-gafi.org/en/publications/Fatfrecommendations/Guidance-rba-virtual-assets.html",
       "scope": "global",
-      "enforcement": "action"
+      "enforcement": "action",
+      "impact": [
+        "exchanges",
+        "wallets-and-custody",
+        "cross-border-payments"
+      ],
+      "survival_signals": [
+        "enforcement-action",
+        "market-access-barrier"
+      ]
     },
     {
       "id": "fsb-global-crypto-framework",
@@ -63,7 +101,17 @@
       "sourceName": "Financial Stability Board",
       "sourceUrl": "https://www.fsb.org/2023/07/high-level-recommendations-for-the-regulation-supervision-and-oversight-of-global-stablecoin-arrangements/",
       "scope": "global",
-      "enforcement": "warning"
+      "enforcement": "warning",
+      "impact": [
+        "exchanges",
+        "defi-protocols",
+        "tokenization"
+      ],
+      "survival_signals": [
+        "licensing-requirements",
+        "disclosure-burden",
+        "market-access-barrier"
+      ]
     },
     {
       "id": "us-executive-order-14067",
@@ -75,7 +123,17 @@
       "sourceName": "The White House",
       "sourceUrl": "https://www.whitehouse.gov/briefing-room/presidential-actions/2022/03/09/executive-order-on-ensuring-responsible-development-of-digital-assets/",
       "scope": "national",
-      "enforcement": "warning"
+      "enforcement": "warning",
+      "impact": [
+        "exchanges",
+        "defi-protocols",
+        "tokenization"
+      ],
+      "survival_signals": [
+        "licensing-requirements",
+        "disclosure-burden",
+        "market-access-barrier"
+      ]
     },
     {
       "id": "us-sec-spot-btc-etf",
@@ -87,7 +145,16 @@
       "sourceName": "U.S. Securities and Exchange Commission",
       "sourceUrl": "https://www.sec.gov/newsroom/press-releases/2024-4",
       "scope": "national",
-      "enforcement": "action"
+      "enforcement": "action",
+      "impact": [
+        "tokenization",
+        "exchanges",
+        "institutional-adoption"
+      ],
+      "survival_signals": [
+        "disclosure-burden",
+        "licensing-requirements"
+      ]
     },
     {
       "id": "us-sab121",
@@ -99,7 +166,16 @@
       "sourceName": "U.S. Securities and Exchange Commission",
       "sourceUrl": "https://www.sec.gov/oca/staff-accounting-bulletin-121",
       "scope": "national",
-      "enforcement": "action"
+      "enforcement": "action",
+      "impact": [
+        "tokenization",
+        "exchanges",
+        "institutional-adoption"
+      ],
+      "survival_signals": [
+        "disclosure-burden",
+        "licensing-requirements"
+      ]
     },
     {
       "id": "us-fit21-house-passage",
@@ -111,7 +187,17 @@
       "sourceName": "U.S. House of Representatives",
       "sourceUrl": "https://www.congress.gov/bill/118th-congress/house-bill/4763",
       "scope": "national",
-      "enforcement": "warning"
+      "enforcement": "warning",
+      "impact": [
+        "exchanges",
+        "defi-protocols",
+        "tokenization"
+      ],
+      "survival_signals": [
+        "licensing-requirements",
+        "disclosure-burden",
+        "market-access-barrier"
+      ]
     },
     {
       "id": "uk-fca-crypto-promotions",
@@ -123,7 +209,15 @@
       "sourceName": "Financial Conduct Authority",
       "sourceUrl": "https://www.fca.org.uk/firms/cryptoasset-financial-promotions",
       "scope": "national",
-      "enforcement": "action"
+      "enforcement": "action",
+      "impact": [
+        "exchanges",
+        "consumer-protection"
+      ],
+      "survival_signals": [
+        "market-access-barrier",
+        "disclosure-burden"
+      ]
     },
     {
       "id": "jp-stablecoin-law",
@@ -135,7 +229,16 @@
       "sourceName": "Financial Services Agency",
       "sourceUrl": "https://www.fsa.go.jp/en/policy/virtual_currency/index.html",
       "scope": "national",
-      "enforcement": "action"
+      "enforcement": "action",
+      "impact": [
+        "stablecoin-issuers",
+        "wallets-and-custody",
+        "institutional-adoption"
+      ],
+      "survival_signals": [
+        "reserve-and-audit-requirements",
+        "licensing-requirements"
+      ]
     },
     {
       "id": "sg-mas-stablecoin-framework",
@@ -147,7 +250,15 @@
       "sourceName": "Monetary Authority of Singapore",
       "sourceUrl": "https://www.mas.gov.sg/news/media-releases/2023/mas-finalises-stablecoin-regulatory-framework",
       "scope": "national",
-      "enforcement": "action"
+      "enforcement": "action",
+      "impact": [
+        "stablecoin-issuers",
+        "institutional-adoption"
+      ],
+      "survival_signals": [
+        "reserve-and-audit-requirements",
+        "licensing-requirements"
+      ]
     },
     {
       "id": "ch-finma-stablecoin-guidance",
@@ -159,7 +270,16 @@
       "sourceName": "Swiss Financial Market Supervisory Authority",
       "sourceUrl": "https://www.finma.ch/en/news/2024/07/20240726-mm-stablecoins/",
       "scope": "national",
-      "enforcement": "action"
+      "enforcement": "action",
+      "impact": [
+        "stablecoin-issuers",
+        "wallets-and-custody",
+        "institutional-adoption"
+      ],
+      "survival_signals": [
+        "reserve-and-audit-requirements",
+        "licensing-requirements"
+      ]
     },
     {
       "id": "us-ofac-tornado-cash",
@@ -171,7 +291,16 @@
       "sourceName": "U.S. Department of the Treasury",
       "sourceUrl": "https://ofac.treasury.gov/recent-actions/20220808",
       "scope": "national",
-      "enforcement": "action"
+      "enforcement": "action",
+      "impact": [
+        "sanctions-compliance",
+        "cross-border-payments",
+        "exchanges"
+      ],
+      "survival_signals": [
+        "enforcement-action",
+        "delisting-risk"
+      ]
     },
     {
       "id": "us-crypto-tax-reporting",
@@ -183,7 +312,16 @@
       "sourceName": "U.S. Internal Revenue Service",
       "sourceUrl": "https://www.irs.gov/newsroom/irs-issues-final-regulations-on-sales-and-exchanges-of-digital-assets-by-brokers",
       "scope": "national",
-      "enforcement": "action"
+      "enforcement": "action",
+      "impact": [
+        "exchanges",
+        "defi-protocols",
+        "institutional-adoption"
+      ],
+      "survival_signals": [
+        "higher-compliance-cost",
+        "disclosure-burden"
+      ]
     },
     {
       "id": "hk-vasp-licensing",
@@ -195,7 +333,17 @@
       "sourceName": "Securities and Futures Commission",
       "sourceUrl": "https://www.sfc.hk/en/Rules-and-standards/Virtual-assets",
       "scope": "national",
-      "enforcement": "action"
+      "enforcement": "action",
+      "impact": [
+        "exchanges",
+        "defi-protocols",
+        "tokenization"
+      ],
+      "survival_signals": [
+        "licensing-requirements",
+        "disclosure-burden",
+        "market-access-barrier"
+      ]
     },
     {
       "id": "br-crypto-law",
@@ -207,7 +355,17 @@
       "sourceName": "Central Bank of Brazil",
       "sourceUrl": "https://www.bcb.gov.br/en/financialstability/vasp",
       "scope": "national",
-      "enforcement": "action"
+      "enforcement": "action",
+      "impact": [
+        "exchanges",
+        "defi-protocols",
+        "tokenization"
+      ],
+      "survival_signals": [
+        "licensing-requirements",
+        "disclosure-burden",
+        "market-access-barrier"
+      ]
     },
     {
       "id": "eu-gdpr-application",
@@ -219,7 +377,16 @@
       "sourceName": "European Commission",
       "sourceUrl": "https://commission.europa.eu/law/law-topic/data-protection/data-protection-eu_en",
       "scope": "regional",
-      "enforcement": "action"
+      "enforcement": "action",
+      "impact": [
+        "consumer-protection",
+        "infrastructure-providers",
+        "exchanges"
+      ],
+      "survival_signals": [
+        "operational-risk-management",
+        "disclosure-burden"
+      ]
     },
     {
       "id": "us-nydfs-usdc-reserves",
@@ -231,7 +398,16 @@
       "sourceName": "New York State Department of Financial Services",
       "sourceUrl": "https://www.dfs.ny.gov/virtual_currency_businesses",
       "scope": "national",
-      "enforcement": "action"
+      "enforcement": "action",
+      "impact": [
+        "stablecoin-issuers",
+        "wallets-and-custody",
+        "institutional-adoption"
+      ],
+      "survival_signals": [
+        "reserve-and-audit-requirements",
+        "licensing-requirements"
+      ]
     },
     {
       "id": "circle-mica-stablecoin",
@@ -243,7 +419,16 @@
       "sourceName": "Circle",
       "sourceUrl": "https://www.circle.com/blog/circle-secures-licensing-under-mica",
       "scope": "regional",
-      "enforcement": "action"
+      "enforcement": "action",
+      "impact": [
+        "stablecoin-issuers",
+        "wallets-and-custody",
+        "institutional-adoption"
+      ],
+      "survival_signals": [
+        "reserve-and-audit-requirements",
+        "licensing-requirements"
+      ]
     }
   ]
 }

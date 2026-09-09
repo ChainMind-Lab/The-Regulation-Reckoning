@@ -80,8 +80,9 @@ Deployed contract metadata and initialisation status:
 ```json
 {
   "configured": true,
-  "contractId": "CC2YEX6U7HV7L7L45HVOLVWGN2POARLPS3XICZS6KQH5Y52OTAHK7LVY",
+  "contractId": "CCVDE7Q3UF4O223ONMLUPYPUZWFO7STOQJWCDD3C5LELDLU4GHOFLCH7",
   "tokenId": "CCOAF5DIHLO4457S6EGQYSLXGGDRQPTO42DU6N5KVH4M2MSA2VDW2NB4",
+  "registryId": "CBIA55MJABCVVMZ6BMF3GNZ7USTNJW2ZJQMO2MNUXHFPRN34JOOES3CS",
   "admin": "GBRVOQSLP32BGOCYA56DCTM5PUQWW7YLBBAKVXBHDTJ6SNKVLGMWFRQI",
   "network": "Test SDF Network ; September 2015",
   "rpcUrl": "https://soroban-testnet.stellar.org",
@@ -89,6 +90,20 @@ Deployed contract metadata and initialisation status:
   "initialised": true
 }
 ```
+
+### `GET /api/contributors/:address`
+Live on-chain stats from the contributors registry (inter-contract contract):
+```json
+{
+  "contributor": "G…FRQI",
+  "count": 1,
+  "total": "250",
+  "verified": true,
+  "source": "stellar"
+}
+```
+Reads the registry contract directly via Soroban RPC — proof that the bounty
+contract recorded the payout on-chain.
 
 ### `GET /api/bounties`
 Bounty state derived from indexed contract events, newest first:

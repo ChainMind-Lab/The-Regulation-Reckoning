@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { ContractEvent } from '../lib/types';
 
 const TOPIC_LABELS: Record<string, string> = {
@@ -6,6 +7,38 @@ const TOPIC_LABELS: Record<string, string> = {
   bounty_reclaimed: 'Bounty reclaimed',
   admin_initialised: 'Contract initialised',
 };
+
+function TxHash({ ev }: { ev: ContractEvent }) {
+  const [copied, setCopied] = useState(false);
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(ev.txHash);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* ignore */
+    }
+  }
+  return (
+    <span className="tx-hash-cell">
+      <code className="tx-hash" title={ev.txHash}>
+        {ev.txHash.slice(0, 10)}…
+      </code>
+      <button
+        type="button"
+        className="copy-btn copy-btn-sm"
+        onClick={handleCopy}
+        aria-label="Copy transaction hash"
+        data-testid={`copy-tx-${ev.id}`}
+      >
+        {copied ? '✓' : '⧉'}
+      </button>
+      <a href={ev.explorerUrl} target="_blank" rel="noreferrer" title={ev.txHash}>
+        ↗
+      </a>
+    </span>
+  );
+}
 
 export default function EventsFeed({ events }: { events: ContractEvent[] }) {
   if (events.length === 0) {
@@ -33,9 +66,7 @@ export default function EventsFeed({ events }: { events: ContractEvent[] }) {
               <td className="event-issue">{ev.issueId ?? '—'}</td>
               <td>#{ev.ledger.toLocaleString()}</td>
               <td>
-                <a href={ev.explorerUrl} target="_blank" rel="noreferrer" title={ev.txHash}>
-                  {ev.txHash.slice(0, 10)}… ↗
-                </a>
+                <TxHash ev={ev} />
               </td>
             </tr>
           ))}

@@ -32,6 +32,38 @@ export const POLICY_CATEGORIES = [
 
 export type PolicyCategory = (typeof POLICY_CATEGORIES)[number];
 
+/** Ecosystem-impact taxonomy (curated per record in the dataset). */
+export const IMPACT_AREAS = [
+  'stablecoin-issuers',
+  'exchanges',
+  'cross-border-payments',
+  'wallets-and-custody',
+  'defi-protocols',
+  'institutional-adoption',
+  'tokenization',
+  'sanctions-compliance',
+  'consumer-protection',
+  'infrastructure-providers',
+] as const;
+
+export type ImpactArea = (typeof IMPACT_AREAS)[number];
+
+/** Project-survival signal taxonomy (curated per record in the dataset). */
+export const SURVIVAL_SIGNALS = [
+  'higher-compliance-cost',
+  'licensing-requirements',
+  'jurisdiction-shift',
+  'delisting-risk',
+  'reserve-and-audit-requirements',
+  'disclosure-burden',
+  'operational-risk-management',
+  'enforcement-action',
+  'market-access-barrier',
+  'capital-requirement',
+] as const;
+
+export type SurvivalSignal = (typeof SURVIVAL_SIGNALS)[number];
+
 export interface RawPolicyRecord {
   id: string;
   title: string;
@@ -43,6 +75,8 @@ export interface RawPolicyRecord {
   sourceUrl: string;
   scope: 'global' | 'regional' | 'national';
   enforcement: 'none' | 'warning' | 'action';
+  impact?: ImpactArea[]; // ecosystem areas affected
+  survival_signals?: SurvivalSignal[]; // project-survival implications
 }
 
 export interface ClassifiedPolicyRecord extends RawPolicyRecord {
@@ -72,6 +106,28 @@ export function validatePolicyRecord(r: RawPolicyRecord): string[] {
   }
   if (!['none', 'warning', 'action'].includes(r.enforcement)) {
     errors.push(`enforcement invalid for ${r.id}: ${r.enforcement}`);
+  }
+  if (r.impact !== undefined) {
+    if (!Array.isArray(r.impact) || r.impact.length === 0) {
+      errors.push(`impact must be a non-empty array for ${r.id}`);
+    } else {
+      for (const a of r.impact) {
+        if (!(IMPACT_AREAS as readonly string[]).includes(a)) {
+          errors.push(`impact area invalid for ${r.id}: ${a}`);
+        }
+      }
+    }
+  }
+  if (r.survival_signals !== undefined) {
+    if (!Array.isArray(r.survival_signals) || r.survival_signals.length === 0) {
+      errors.push(`survival_signals must be a non-empty array for ${r.id}`);
+    } else {
+      for (const s of r.survival_signals) {
+        if (!(SURVIVAL_SIGNALS as readonly string[]).includes(s)) {
+          errors.push(`survival signal invalid for ${r.id}: ${s}`);
+        }
+      }
+    }
   }
   return errors;
 }
@@ -122,8 +178,8 @@ export function persistPolicies(records: ClassifiedPolicyRecord[]): number {
   const db = getDb();
   const upsert = db.prepare(`
     INSERT INTO regulatory_events
-      (id, title, jurisdiction, category, event_date, severity, summary, source_name, source_url, ingested_at, ingestion_source)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'dataset')
+      (id, title, jurisdiction, category, event_date, severity, summary, source_name, source_url, ingested_at, ingestion_source, impact, survival_signals)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'dataset', ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       title = excluded.title,
       jurisdiction = excluded.jurisdiction,
@@ -133,7 +189,9 @@ export function persistPolicies(records: ClassifiedPolicyRecord[]): number {
       summary = excluded.summary,
       source_name = excluded.source_name,
       source_url = excluded.source_url,
-      ingested_at = excluded.ingested_at
+      ingested_at = excluded.ingested_at,
+      impact = excluded.impact,
+      survival_signals = excluded.survival_signals
   `);
   const now = new Date().toISOString();
   db.exec('BEGIN');
@@ -150,6 +208,8 @@ export function persistPolicies(records: ClassifiedPolicyRecord[]): number {
         r.sourceName,
         r.sourceUrl,
         now,
+        JSON.stringify(r.impact ?? []),
+        JSON.stringify(r.survival_signals ?? []),
       );
     }
     db.exec('COMMIT');

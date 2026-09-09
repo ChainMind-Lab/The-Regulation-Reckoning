@@ -17,20 +17,48 @@ import { config, isContractConfigured } from '../config';
 import { fetchContractEvents, type SorobanContractEvent } from './soroban';
 
 const CURSOR_KEY = 'soroban_events_cursor';
+const LEDGER_KEY = 'last_indexed_ledger';
 
-export function getCursor(): string | null {
+function getStateValue(key: string): string | null {
   const db = getDb();
-  const row = db.prepare(`SELECT value FROM indexer_state WHERE key = ?`).get(CURSOR_KEY) as
+  const row = db.prepare(`SELECT value FROM indexer_state WHERE key = ?`).get(key) as
     { value: string } | undefined;
   return row?.value ?? null;
 }
 
-export function setCursor(cursor: string): void {
+function setStateValue(key: string, value: string): void {
   const db = getDb();
   db.prepare(
     `INSERT INTO indexer_state (key, value) VALUES (?, ?)
      ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
-  ).run(CURSOR_KEY, cursor);
+  ).run(key, value);
+}
+
+export function getCursor(): string | null {
+  return getStateValue(CURSOR_KEY);
+}
+
+export function setCursor(cursor: string): void {
+  setStateValue(CURSOR_KEY, cursor);
+}
+
+/** Last ledger sequence indexed so far (used for missed-ledger detection). */
+export function getLastIndexedLedger(): number {
+  const raw = getStateValue(LEDGER_KEY);
+  const n = raw === null ? 0 : Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+/**
+ * Detect a ledger gap between the last indexed ledger and a new batch.
+ * Returns the number of skipped ledgers (0 when contiguous or first run).
+ */
+export function detectLedgerGap(events: SorobanContractEvent[]): number {
+  if (events.length === 0) return 0;
+  const last = getLastIndexedLedger();
+  if (last === 0) return 0; // first run: nothing to compare against
+  const first = Math.min(...events.map((e) => e.ledger));
+  return Math.max(0, first - last - 1);
 }
 
 /** Persist one batch of contract events; returns the number of new events. */
@@ -169,24 +197,56 @@ export function rebuildBountyState(): void {
   metrics.setGauge('bounties_tracked', bounties.size);
 }
 
-/** One indexer pass: fetch events since the stored cursor and persist them. */
+/**
+ * One indexer pass: fetch events since the stored cursor and persist them.
+ *
+ * Failure handling:
+ *  - RPC failures are contained here: the cursor is never advanced, a warn is
+ *    logged, `indexer_up` drops to 0, and the next poll retries.
+ *  - DB failures roll back inside `persistEvents` and re-throw into this
+ *    handler — again the cursor is preserved for the next attempt.
+ *  - Missed-ledger gaps (ledgers skipped between batches, e.g. after a long
+ *    outage) are detected and logged so operators can investigate.
+ */
 export async function indexOnce(): Promise<number> {
   if (!isContractConfigured()) {
     logger.warn('indexer: skipped, BOUNTY_CONTRACT_ID not configured');
     return 0;
   }
   const cursor = getCursor();
-  const { events, nextCursor } = await fetchContractEvents(cursor);
-  const inserted = persistEvents(events);
-  if (nextCursor) setCursor(nextCursor);
-  if (inserted > 0) {
-    logger.info('indexer: processed batch', {
-      fetched: events.length,
-      inserted,
-      cursor: nextCursor,
-    });
+  try {
+    const { events, nextCursor } = await fetchContractEvents(cursor);
+
+    const gap = detectLedgerGap(events);
+    if (gap > 0) {
+      logger.warn('indexer: missed-ledger gap detected', {
+        gap,
+        fromLedger: getLastIndexedLedger(),
+        toLedger: Math.min(...events.map((e) => e.ledger)),
+      });
+      metrics.inc('indexer_ledger_gaps_total', {});
+    }
+
+    const inserted = persistEvents(events);
+    // Persist succeeded: only now advance the cursor and last-ledger state.
+    if (nextCursor) setCursor(nextCursor);
+    if (events.length > 0) {
+      setStateValue(LEDGER_KEY, String(Math.max(...events.map((e) => e.ledger))));
+    }
+    metrics.setGauge('indexer_up', 1);
+    if (inserted > 0) {
+      logger.info('indexer: processed batch', {
+        fetched: events.length,
+        inserted,
+        cursor: nextCursor,
+      });
+    }
+    return inserted;
+  } catch (err) {
+    metrics.setGauge('indexer_up', 0);
+    logger.warn('indexer: pass failed, cursor preserved for retry', { err: String(err) });
+    return 0;
   }
-  return inserted;
 }
 
 let timer: NodeJS.Timeout | null = null;

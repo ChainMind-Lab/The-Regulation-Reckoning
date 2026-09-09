@@ -37,6 +37,19 @@ its disposition.
 | 19 | `stellar-sdk` in root `package.json` | package.json | Unused (frontend never imports it); backend version (10.4.1) lacks Soroban RPC support | Removed from root; backend upgraded to `@stellar/stellar-sdk` v16 (fixes the `toml` advisory via `smol-toml`) |
 | 20 | No Docker, no deployment scripts, no API docs, no security doc | — | None existed | Added Docker (frontend+backend), `scripts/deploy-testnet.sh`, `docs/API.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md` |
 
+## A2. Second-pass findings (production-readiness upgrade, all fixed)
+
+| # | Claim / gap | Disposition |
+|---|---|---|
+| 21 | No inter-contract communication | Added `contracts/contributors` registry (7 tests) wired into bounty `release` via `env.invoke_contract`; deployed + proven live (`contributor_recorded` event; `/api/contributors/:address` reads stats on-chain) |
+| 22 | Indexer lacked failure-path tests | Hardened: duplicate protection (unique constraint), cursor persistence + restart recovery, RPC-failure containment (bounded retries, `soroban_up` gauge), ledger-gap detection, DB-failure rollback; 14 indexer tests incl. injected RPC/DB failures |
+| 23 | No ecosystem-impact / survival-signal intelligence | Dataset enriched with curated `impact` + `survivalSignals` (reproducible script); analytics adds timeline, jurisdiction×category risk heat map, impact/survival aggregates, per-jurisdiction risk; API + dashboard expose all of it |
+| 24 | Frontend lacked verification panel, tx history, copy, wrong-network detection, skeletons, mobile CSS | Added: `VerificationPanel` (deployed IDs + admin + network + successful tx history with copy + explorer links), copy buttons everywhere, Freighter network check with wrong-network warning, skeleton loading, responsive breakpoints, timeline/heat map charts |
+| 25 | No secret scanning, SBOM, container scanning | CI now runs gitleaks, Trivy image + filesystem scans (SARIF → Security tab), CycloneDX SBOM uploads |
+| 26 | Dockerfiles ran as root | Backend now `USER node` (writable volume chowned); frontend nginx `USER nginx`; nginx security headers added |
+| 27 | Deploy script deployed only the bounty contract | `scripts/deploy-testnet.sh` now builds + deploys + initialises both contracts (registry first, bounty wired to it) and writes `CONTRIBUTOR_REGISTRY_ID` |
+| 28 | ROADMAP listed charts/heat maps as planned | Implemented and shipped in the dashboard; ROADMAP updated to mark completed work |
+
 ## B. Things that were real and are retained
 
 - **Horizon live network status** (`GET /api/network`) — real, tested against Horizon.

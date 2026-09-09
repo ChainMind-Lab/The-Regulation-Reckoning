@@ -12,6 +12,7 @@ export type ContractInfo = {
   configured: boolean;
   contractId: string | null;
   tokenId: string | null;
+  registryId: string | null;
   admin: string | null;
   network: string;
   rpcUrl: string;
@@ -56,6 +57,32 @@ export type ContractEvent = {
   explorerUrl: string;
 };
 
+/** Ecosystem-impact area covered by a policy event (curated taxonomy — must match backend/src/services/ingest/policies.ts). */
+export type ImpactArea =
+  | 'stablecoin-issuers'
+  | 'exchanges'
+  | 'cross-border-payments'
+  | 'wallets-and-custody'
+  | 'defi-protocols'
+  | 'institutional-adoption'
+  | 'tokenization'
+  | 'sanctions-compliance'
+  | 'consumer-protection'
+  | 'infrastructure-providers';
+
+/** Project-survival signal attached to a policy event (curated taxonomy — must match backend). */
+export type SurvivalSignal =
+  | 'higher-compliance-cost'
+  | 'licensing-requirements'
+  | 'jurisdiction-shift'
+  | 'delisting-risk'
+  | 'reserve-and-audit-requirements'
+  | 'disclosure-burden'
+  | 'operational-risk-management'
+  | 'enforcement-action'
+  | 'market-access-barrier'
+  | 'capital-requirement';
+
 export type PolicyRecord = {
   id: string;
   title: string;
@@ -67,6 +94,34 @@ export type PolicyRecord = {
   sourceName: string;
   sourceUrl: string;
   source: string;
+  impact: ImpactArea[];
+  survivalSignals: SurvivalSignal[];
+};
+
+export type TimelinePoint = {
+  month: string; // YYYY-MM
+  count: number;
+  averageSeverity: number;
+};
+
+export type HeatmapCell = {
+  jurisdiction: string;
+  category: string;
+  count: number;
+  severityScore: number;
+  risk: number; // 0..100 within this cell
+};
+
+export type ImpactAggregate = {
+  area: ImpactArea;
+  count: number;
+  totalSeverity: number;
+};
+
+export type SurvivalSignalAggregate = {
+  signal: SurvivalSignal;
+  count: number;
+  totalSeverity: number;
 };
 
 export type AnalyticsSnapshot = {
@@ -82,6 +137,11 @@ export type AnalyticsSnapshot = {
   byCategory: Record<string, number>;
   bySeverity: Record<number, number>;
   byYear: Record<string, number>;
+  timeline: TimelinePoint[];
+  heatmap: HeatmapCell[];
+  impact: ImpactAggregate[];
+  survivalSignals: SurvivalSignalAggregate[];
+  jurisdictionRisk: Record<string, number>;
 };
 
 export type Issue = {

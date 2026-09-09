@@ -1,7 +1,34 @@
+import { useState } from 'react';
 import type { Bounty } from '../lib/types';
 
 function shortAddress(address: string): string {
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
+}
+
+function Copyable({ text, short }: { text: string; short: string }) {
+  const [copied, setCopied] = useState(false);
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* ignore */
+    }
+  }
+  return (
+    <span className="copyable-addr">
+      <code title={text}>{short}</code>
+      <button
+        type="button"
+        className="copy-btn copy-btn-sm"
+        onClick={handleCopy}
+        aria-label="Copy address"
+      >
+        {copied ? '✓' : '⧉'}
+      </button>
+    </span>
+  );
 }
 
 export default function BountyCard({ bounty }: { bounty: Bounty }) {
@@ -19,16 +46,12 @@ export default function BountyCard({ bounty }: { bounty: Bounty }) {
       </div>
       <div className="bounty-row">
         <span className="bounty-label">Funder</span>
-        <span className="bounty-addr" title={bounty.funder}>
-          {shortAddress(bounty.funder)}
-        </span>
+        <Copyable text={bounty.funder} short={shortAddress(bounty.funder)} />
       </div>
       {bounty.contributor && (
         <div className="bounty-row">
           <span className="bounty-label">Contributor</span>
-          <span className="bounty-addr" title={bounty.contributor}>
-            {shortAddress(bounty.contributor)}
-          </span>
+          <Copyable text={bounty.contributor} short={shortAddress(bounty.contributor)} />
         </div>
       )}
       <div className="bounty-links">

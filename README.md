@@ -39,26 +39,31 @@ A production-oriented Stellar/Soroban application (not a prototype):
 
 | Artifact | Value |
 |---|---|
-| Bounty contract | `CC2YEX6U7HV7L7L45HVOLVWGN2POARLPS3XICZS6KQH5Y52OTAHK7LVY` |
+| Bounty contract | `CCVDE7Q3UF4O223ONMLUPYPUZWFO7STOQJWCDD3C5LELDLU4GHOFLCH7` |
+| Contributors registry | `CBIA55MJABCVVMZ6BMF3GNZ7USTNJW2ZJQMO2MNUXHFPRN34JOOES3CS` |
 | Demo token (RRD, SAC) | `CCOAF5DIHLO4457S6EGQYSLXGGDRQPTO42DU6N5KVH4M2MSA2VDW2NB4` |
 | Contract admin | `GBRVOQSLP32BGOCYA56DCTM5PUQWW7YLBBAKVXBHDTJ6SNKVLGMWFRQI` |
 | Network | Stellar Testnet (`soroban-testnet.stellar.org`) |
 
 The end-to-end proof (frontend action → Freighter-style signature → Soroban transaction →
-event indexing → backend → dashboard) is a runnable script with recorded transactions:
+bounty→registry inter-contract call → event indexing → backend → dashboard) is a runnable
+script with recorded transactions:
 
-- Mint 1,000 RRD to funder: `3902c7e5bab688042852552fb2da1d6107570d47367d4552a16e54f5145b5188`
-- Create bounty `repo#42`: `88e97e1750253c8bedc88383d28c37dcf9834d9168a7e2bbc2461948b48d72c6`
-- Release bounty to contributor: `ee7f058ece2d81519c4762e265f82d277b2a245537878db4ef60e197db92c901`
+- Registry initialised (allowed caller = bounty): `9fffc497…64c5`
+- Bounty initialised (admin + registry): `d3823f15…f4ec`
+- Create bounty: `7ed5ec53…44b`
+- Release bounty → contributor recorded in registry: `135d978b…db74`
 
-View them on the [Testnet explorer](https://stellar.expert/explorer/testnet) or re-run the
-whole flow yourself:
+Full hashes and explorer links are in `docs/DEPLOYMENT.md`. View them on the
+[Testnet explorer](https://stellar.expert/explorer/testnet) or re-run the whole flow
+yourself:
 
 ```bash
 cd backend
 npm run build
-BOUNTY_CONTRACT_ID=CC2YEX6U7HV7L7L45HVOLVWGN2POARLPS3XICZS6KQH5Y52OTAHK7LVY \
+BOUNTY_CONTRACT_ID=CCVDE7Q3UF4O223ONMLUPYPUZWFO7STOQJWCDD3C5LELDLU4GHOFLCH7 \
 DEMO_TOKEN_ID=CCOAF5DIHLO4457S6EGQYSLXGGDRQPTO42DU6N5KVH4M2MSA2VDW2NB4 \
+CONTRIBUTOR_REGISTRY_ID=CBIA55MJABCVVMZ6BMF3GNZ7USTNJW2ZJQMO2MNUXHFPRN34JOOES3CS \
 BOUNTY_ADMIN_ADDRESS=GBRVOQSLP32BGOCYA56DCTM5PUQWW7YLBBAKVXBHDTJ6SNKVLGMWFRQI \
 node dist/server.js &   # backend on :3001, indexer enabled
 ADMIN_SECRET=<deploy-account-secret> node e2e/testnet-e2e.mjs
@@ -91,10 +96,12 @@ ADMIN_SECRET=<deploy-account-secret> node e2e/testnet-e2e.mjs
 │   ├── test/                  # unit + API integration tests
 │   └── e2e/testnet-e2e.mjs    # live Testnet proof script
 │
-├── contracts/bounty/          # Soroban bounty contract (Rust, soroban-sdk 27)
-│   └── src/lib.rs             # create/release/reclaim + typed events, 19 tests
+├── contracts/bounty/          # Soroban bounty escrow (Rust, soroban-sdk 27)
+│   └── src/lib.rs             # create/release/reclaim + registry inter-contract call
+├── contracts/contributors/    # Soroban contributors registry (inter-contract)
+│   └── src/lib.rs             # record() gated to the bounty contract
 │
-├── scripts/deploy-testnet.sh  # reproducible Testnet deployment
+├── scripts/deploy-testnet.sh  # reproducible Testnet deployment (both contracts)
 ├── Dockerfile, backend/Dockerfile, docker-compose.yml
 ├── docs/                      # ARCHITECTURE, API, DATA, DEPLOYMENT, SECURITY, AUDIT
 └── .github/workflows/ci.yml   # format, lint, typecheck, tests, audit, builds
@@ -124,7 +131,11 @@ Connect the Freighter wallet to fund or release bounties with the RRD demo token
 
 ```bash
 cd contracts/bounty
-cargo test             # 19 unit tests: auth, validation, idempotency, events
+cargo test             # 21 unit tests: auth, validation, idempotency, inter-contract
+cargo clippy --all-targets -- -D warnings
+cargo fmt --check
+cd ../contributors
+cargo test             # 7 unit tests: auth, validation, accumulation, events
 cargo clippy --all-targets -- -D warnings
 cargo fmt --check
 ```
@@ -139,10 +150,11 @@ docker compose up --build
 
 ## Testnet deployment
 
-`scripts/deploy-testnet.sh` reproduces the live deployment end-to-end: it builds the
-WASM, funds a fresh account via Friendbot, deploys the bounty contract and the RRD
-demo token, initialises the contract, and writes `backend/.env.deployed`. See
-[`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md).
+`scripts/deploy-testnet.sh` reproduces the live deployment end-to-end: it builds both
+WASMs, funds a fresh account via Friendbot, deploys the bounty contract, the
+contributors registry, and the RRD demo token, initialises the registry (allowed
+caller = bounty) and the bounty (admin + registry), and writes
+`backend/.env.deployed`. See [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md).
 
 ## Documentation
 
@@ -166,4 +178,4 @@ See [`CONTRIBUTING.md`](./CONTRIBUTING.md) and [`docs/CONTRIBUTOR_GUIDE.md`](./d
 | Backend | Node.js, Express 4, `node:sqlite`, `@stellar/stellar-sdk` 16 |
 | Smart contract | Rust, Soroban SDK 27 |
 | Blockchain | Stellar Testnet (Soroban RPC + Horizon) |
-| CI | GitHub Actions: prettier, eslint, tsc, vitest, cargo fmt/clippy/test, npm audit |
+| CI | GitHub Actions: prettier, eslint, tsc, vitest, cargo fmt/clippy/test, gitleaks, Trivy, SBOM, npm audit |
