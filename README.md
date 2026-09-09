@@ -51,8 +51,8 @@ script with recorded transactions:
 
 - Registry initialised (allowed caller = bounty): `b211edd3…da78`
 - Bounty initialised (admin + registry): `a099ff84…d052`
-- Create bounty: `51e0d184…9332`
-- Release bounty → contributor recorded in registry: `733365c0…d37`
+- Create bounty: `043c8e6d…3809`
+- Release bounty → contributor recorded in registry: `97c2b71e…c9ee`
 
 Full hashes and explorer links are in `docs/DEPLOYMENT.md`. View them on the
 [Testnet explorer](https://stellar.expert/explorer/testnet) or re-run the whole flow
@@ -140,12 +140,51 @@ cargo clippy --all-targets -- -D warnings
 cargo fmt --check
 ```
 
+## Testing
+
+Every layer has automated tests, and CI runs all of them on every push/PR:
+
+```bash
+# Frontend (30 tests): wallet flow, verification panel, charts, copy, wrong-network
+cd . && npm ci && npm test
+
+# Backend (46 tests): API routes, ingestion, analytics, indexer hardening
+cd backend && npm ci && npm test
+
+# Soroban contracts (21 + 7 tests): auth, validation, idempotency, inter-contract
+cd contracts/bounty && cargo test
+cd contracts/contributors && cargo test
+
+# Live Testnet end-to-end proof: frontend → wallet → Soroban → event → indexer →
+# DB → API → dashboard, plus on-chain registry stats. Requires a running backend.
+cd backend && ADMIN_SECRET=<deploy-account-secret> npm run e2e
+```
+
+The e2e exits non-zero on any failed assertion and prints fresh transaction hashes;
+recorded proof transactions are in [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md).
+
+## Security
+
+- **Threat model** and mitigations: [`docs/SECURITY.md`](./docs/SECURITY.md)
+- Admin secret is environment-only, never served by the API, and gitignored.
+- Per-IP rate limiting on the API; CORS locked to the frontend origin.
+- Soroban contracts use `require_auth` on every privileged path; the registry only
+  accepts writes from the bounty contract.
+- CI runs **gitleaks** secret scanning, **Trivy** image + filesystem scans,
+  **CycloneDX SBOMs**, and `npm audit` — plus both Dockerfiles run as non-root users.
+
+## Monitoring
+
+Prometheus-format metrics at `GET /metrics`; a provisioned Prometheus + Grafana
+stack ships in `monitoring/` (see [`docs/MONITORING.md`](./docs/MONITORING.md)).
+
 ## Docker
 
 ```bash
 cp .env.example .env    # or export the BOUNTY_* variables
 docker compose up --build
 # frontend → http://localhost:8080  (proxies /api to the backend)
+# prometheus → http://localhost:9090 · grafana → http://localhost:3000
 ```
 
 ## Testnet deployment

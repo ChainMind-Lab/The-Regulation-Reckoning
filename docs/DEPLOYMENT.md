@@ -26,8 +26,8 @@ and it accumulates per-contributor totals on-chain. The backend reads it live
 |---|---|
 | Registry initialised (allowed caller = bounty) | [`b211edd3e84cf691e65cf96980ea69bf1a49bfc8d31b672e9390d34a8d47da78`](https://stellar.expert/explorer/testnet/tx/b211edd3e84cf691e65cf96980ea69bf1a49bfc8d31b672e9390d34a8d47da78) |
 | Bounty initialised (admin + registry) | [`a099ff84df7142b12daac71673b95b88846924537ec4e4bd385c11a884c4d052`](https://stellar.expert/explorer/testnet/tx/a099ff84df7142b12daac71673b95b88846924537ec4e4bd385c11a884c4d052) |
-| Create bounty (`e2e-…`, 250 RRD) | [`51e0d18457320f7b858f672cc6fd5d0d733c21b529f0eacf0c9c758f36709332`](https://stellar.expert/explorer/testnet/tx/51e0d18457320f7b858f672cc6fd5d0d733c21b529f0eacf0c9c758f36709332) |
-| Release bounty → contributor recorded in registry | [`733365c09660dbd05bac8d85658f6bd438a7d811560de865c06ab8c2a0ed3d37`](https://stellar.expert/explorer/testnet/tx/733365c09660dbd05bac8d85658f6bd438a7d811560de865c06ab8c2a0ed3d37) |
+| Create bounty (`e2e-…`, 250 RRD) | [`043c8e6de7ccda1455931ca7d26972db309ab2bbaa916936d4f50340c22b3809`](https://stellar.expert/explorer/testnet/tx/043c8e6de7ccda1455931ca7d26972db309ab2bbaa916936d4f50340c22b3809) |
+| Release bounty → contributor recorded in registry | [`97c2b71e40d1eb62a77518dc4e4067b0a7257201fa98bed3c8e0cbbcd3d7c9ee`](https://stellar.expert/explorer/testnet/tx/97c2b71e40d1eb62a77518dc4e4067b0a7257201fa98bed3c8e0cbbcd3d7c9ee) |
 
 The last two hashes are the tail of the full proof chain exercised by
 `backend/e2e/testnet-e2e.mjs`: funder account → trustline → mint → build/sign/submit
