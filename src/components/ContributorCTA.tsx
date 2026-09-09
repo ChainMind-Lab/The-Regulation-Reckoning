@@ -1,18 +1,32 @@
+const REPO = 'https://github.com/ChainMind-Lab/The-Regulation-Reckoning';
+
 const STEPS = [
-  { num: '01', text: 'Browse open issues tagged for Wave 5 and pick one that fits your skills.' },
-  { num: '02', text: 'Fork the repo, open a PR, and link it to the issue on Drips Wave.' },
-  { num: '03', text: 'Get your PR merged and earn Points — redeemable for real rewards.' },
-  { num: '04', text: 'Build your on-chain contributor portfolio across the Stellar ecosystem.' },
+  {
+    num: '01',
+    text: 'Connect Freighter and fund a bounty: pick an issue and lock RRD demo tokens on the Soroban contract.',
+  },
+  {
+    num: '02',
+    text: 'Submit a pull request for the issue and reference it in the bounty description.',
+  },
+  {
+    num: '03',
+    text: 'The maintainer releases the bounty from the contract — the contributor receives the tokens on-chain.',
+  },
+  {
+    num: '04',
+    text: 'Every create, release, and reclaim is a verifiable Stellar event, indexed and shown on the dashboard.',
+  },
 ];
 
 export default function ContributorCTA() {
   return (
     <section className="cta" id="contribute">
-      <h2>Contribute to Wave 5</h2>
+      <h2>Contribute</h2>
       <p>
-        The Regulation Reckoning is an approved Stellar Drips Wave repo. Every merged
-        PR earns Points toward the Wave 5 reward pool. No experience with Stellar
-        required — pick a <span style={{ color: 'var(--green)' }}>good first issue</span> and start today.
+        The Regulation Reckoning is an open-source Soroban application. Everything here runs on
+        Stellar Testnet with real transactions — no mocks. Contribute code, research, or data, and
+        get paid on-chain when a bounty is released to you.
       </p>
       <div className="cta-steps">
         {STEPS.map((s) => (
@@ -23,21 +37,16 @@ export default function ContributorCTA() {
         ))}
       </div>
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        <a
-          className="btn btn-primary"
-          href="https://www.drips.network/wave/stellar/issues"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Browse Wave 5 issues
+        <a className="btn btn-primary" href={`${REPO}/issues`} target="_blank" rel="noreferrer">
+          Open issues
         </a>
         <a
           className="btn btn-outline"
-          href="https://docs.drips.network/wave/contributors/solving-issues-and-earning-rewards"
+          href="https://github.com/ChainMind-Lab/The-Regulation-Reckoning/blob/main/docs/CONTRIBUTOR_GUIDE.md"
           target="_blank"
           rel="noreferrer"
         >
-          How it works
+          Contributor guide
         </a>
       </div>
     </section>

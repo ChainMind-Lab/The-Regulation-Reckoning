@@ -1,0 +1,31 @@
+services:
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      # Soroban bounty contract deployed on Stellar Testnet (see docs/DEPLOYMENT.md)
+      BOUNTY_CONTRACT_ID: ${BOUNTY_CONTRACT_ID:-CC2YEX6U7HV7L7L45HVOLVWGN2POARLPS3XICZS6KQH5Y52OTAHK7LVY}
+      DEMO_TOKEN_ID: ${DEMO_TOKEN_ID:-CCOAF5DIHLO4457S6EGQYSLXGGDRQPTO42DU6N5KVH4M2MSA2VDW2NB4}
+      BOUNTY_ADMIN_ADDRESS: ${BOUNTY_ADMIN_ADDRESS:-GBRVOQSLP32BGOCYA56DCTM5PUQWW7YLBBAKVXBHDTJ6SNKVLGMWFRQI}
+      SOROBAN_RPC_URL: https://soroban-testnet.stellar.org
+      HORIZON_URL: https://horizon-testnet.stellar.org
+      STELLAR_NETWORK_PASSPHRASE: "Test SDF Network ; September 2015"
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
+      LOG_LEVEL: info
+    volumes:
+      - trr-data:/app/data/db
+    expose:
+      - "3001"
+
+  frontend:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+volumes:
+  trr-data:

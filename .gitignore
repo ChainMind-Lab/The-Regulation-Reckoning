@@ -4,5 +4,20 @@ dist/
 .DS_Store
 coverage/
 *.log
-env/
 *.local
+
+# Environment & secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Backend artifacts
+backend/node_modules/
+backend/dist/
+backend/data/*.db
+backend/data/*.db-*
+backend/.env
+backend/.env.deployed
+
+# Rust build output (keep Cargo.lock and test_snapshots)
+contracts/bounty/target/

@@ -1,33 +1,50 @@
 # Contributing
 
-This project is organized to make contributions clear, meaningful, and easy to scope.
+Thanks for contributing to The Regulation Reckoning — a Soroban bounty platform on
+Stellar Testnet. Read [`docs/CONTRIBUTOR_GUIDE.md`](./docs/CONTRIBUTOR_GUIDE.md) first.
 
 ## Contribution pathways
 
-- **Research & writing** — extend chapter content, narrative analysis, and policy summaries.
-- **Data & signals** — improve datasets, ingest new jurisdictional rules, and curate signal pipelines.
-- **Engineering** — build site features, improve the analytics UI, and harden the review workflow.
-- **Community & process** — maintain issue templates, update the roadmap, and help reviewers.
+- **Soroban contract** (`contracts/bounty`) — new contract features, hardening,
+  event schema changes. Rust + `soroban-sdk` 27.
+- **Backend** (`backend/`) — API routes, ingestion pipeline, event indexer,
+  analytics, observability. TypeScript + Express + `node:sqlite`.
+- **Frontend** (`src/`) — dashboard components, wallet flows, data presentation.
+  React 18 + Vite.
+- **Data** (`backend/data/`) — regulatory records. Every entry must carry a
+  verifiable `source_url` and fit the documented taxonomy (`docs/DATA.md`).
+- **Docs / CI / Docker** — documentation, workflows, deployment tooling.
 
-## How to contribute
+## Development workflow
 
-1. Review `docs/CONTRIBUTOR_GUIDE.md`.
-2. Find an issue labeled with `good first issue`, `research`, `data`, or `frontend`.
-3. If no issue exists, open a new proposal issue with a clear scope, acceptance criteria, and impact statement.
-4. Fork the repository, make your changes in a branch, and submit a pull request.
+1. Find or open an issue with clear scope and acceptance criteria.
+2. Fork, branch (`git checkout -b feat/...`), implement.
+3. Run the checks below locally — CI runs the same ones.
+4. Open a PR referencing the issue; explain the impact in the description.
 
-## Issue expectations
+## Required checks
 
-A strong issue should include:
-- a clear title and objective
-- desired output or success criteria
-- relevant context or references
-- estimated complexity and contribution area
+| Check | Command |
+|---|---|
+| Frontend format | `npm run format:check` |
+| Frontend lint | `npm run lint` |
+| Frontend typecheck | `npx tsc --noEmit` |
+| Frontend tests | `npm test` |
+| Frontend build | `npm run build` |
+| Backend format/lint/typecheck | `cd backend && npm run format:check && npm run lint && npm run typecheck` |
+| Backend tests | `cd backend && npm test` |
+| Backend build | `cd backend && npm run build` |
+| Contract format | `cd contracts/bounty && cargo fmt --check` |
+| Contract lint | `cd contracts/bounty && cargo clippy --all-targets -- -D warnings` |
+| Contract tests | `cd contracts/bounty && cargo test` |
 
-## Review workflow
+CI additionally runs `npm audit --audit-level=high` on both Node packages.
 
-Pull requests should:
-- include a summary of what changed
-- explain why it matters for the project
-- reference related issues and content chapters
-- preserve existing design, accessibility, and data conventions
+## Pull request expectations
+
+- One objective per PR; keep it scoped.
+- Include tests for behavior changes (contract: failure cases; backend: unit +
+  integration; frontend: component tests).
+- Do not commit `.env*` files, the SQLite DB, or any secret.
+- If you change the contract, run `cargo test` and note whether a Testnet redeploy
+  is required (see `docs/DEPLOYMENT.md`).

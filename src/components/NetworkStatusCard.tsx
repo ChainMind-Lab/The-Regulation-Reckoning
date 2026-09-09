@@ -1,4 +1,4 @@
-import type { NetworkStatus } from '../lib/stellar';
+import type { NetworkStatus } from '../lib/types';
 
 type Props = { status: NetworkStatus | null; error: boolean };
 
@@ -12,7 +12,9 @@ export default function NetworkStatusCard({ status, error }: Props) {
         <h2>Stellar Horizon · Live Network Status</h2>
       </div>
       {error ? (
-        <p className="network-error">Unable to reach Horizon — check your connection or VITE_HORIZON_URL.</p>
+        <p className="network-error">
+          Unable to reach Horizon — check your connection or VITE_HORIZON_URL.
+        </p>
       ) : !status ? (
         <p style={{ color: 'var(--muted)', fontSize: '0.875rem' }}>Connecting to Horizon…</p>
       ) : (

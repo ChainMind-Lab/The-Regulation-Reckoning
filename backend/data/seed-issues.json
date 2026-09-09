@@ -1,0 +1,57 @@
+{
+  "_meta": {
+    "description": "Seed issue list used when GitHub ingestion is not configured (no GITHUB_REPO). Each issue maps to real work in this repository. When GITHUB_REPO is set, the ingestion pipeline replaces these with live GitHub issues.",
+    "schemaVersion": 1,
+    "updatedAt": "2026-09-09"
+  },
+  "issues": [
+    {
+      "id": "ingest-policy-dataset",
+      "title": "Add a regulatory development to the policy dataset (backend/data/policy-regulations.json)",
+      "repo": "ChainMind-Lab/The-Regulation-Reckoning",
+      "points": 100,
+      "tags": ["research", "data", "good-first-issue"],
+      "state": "open"
+    },
+    {
+      "id": "indexer-backfill",
+      "title": "Add an indexer backfill command to re-scan Soroban events from a chosen ledger",
+      "repo": "ChainMind-Lab/The-Regulation-Reckoning",
+      "points": 250,
+      "tags": ["engineering"],
+      "state": "open"
+    },
+    {
+      "id": "bounty-dashboard",
+      "title": "Extend the bounty dashboard with historical event replay and CSV export",
+      "repo": "ChainMind-Lab/The-Regulation-Reckoning",
+      "points": 200,
+      "tags": ["engineering", "frontend"],
+      "state": "open"
+    },
+    {
+      "id": "analytics-export",
+      "title": "Publish reproducible analytics snapshots to the docs site",
+      "repo": "ChainMind-Lab/The-Regulation-Reckoning",
+      "points": 150,
+      "tags": ["research", "data"],
+      "state": "open"
+    },
+    {
+      "id": "wallet-guide",
+      "title": "Document the Freighter wallet flow with a Testnet walkthrough video",
+      "repo": "ChainMind-Lab/The-Regulation-Reckoning",
+      "points": 100,
+      "tags": ["documentation", "good-first-issue"],
+      "state": "open"
+    },
+    {
+      "id": "security-hardening",
+      "title": "Harden the Soroban tx relay: add signature verification and per-wallet rate limits",
+      "repo": "ChainMind-Lab/The-Regulation-Reckoning",
+      "points": 300,
+      "tags": ["engineering", "security"],
+      "state": "open"
+    }
+  ]
+}

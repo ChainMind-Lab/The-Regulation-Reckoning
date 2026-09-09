@@ -3,30 +3,26 @@ export default function HeroSection() {
     <header className="hero">
       <p className="eyebrow">
         <span className="eyebrow-dot" />
-        Stellar Drips Wave 5 · Open Source
+        Stellar Soroban · Stellar Testnet
       </p>
-      <h1>Regulatory resilience and on-chain signals for Stellar builders</h1>
+      <h1>Regulatory resilience, funded on-chain</h1>
       <p className="hero-sub">
-        A Stellar-native open-source platform mapping how global regulations shape
-        network health, project survival, and the Web3 ecosystem. Fix issues.
-        Merge code. Earn Wave rewards.
+        The Regulation Reckoning is a Soroban bounty platform: fund regulatory-research issues with
+        Stellar assets, release rewards to contributors, and watch every event land on-chain —
+        indexed and served back through this dashboard. Stellar Testnet is the source of truth; the
+        backend and dashboard are read-models.
       </p>
       <div className="hero-actions">
-        <a
-          className="btn btn-primary"
-          href="https://www.drips.network/wave/stellar"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Join Wave 5 →
+        <a className="btn btn-primary" href="#bounties">
+          Browse bounties ↓
         </a>
         <a
           className="btn btn-outline"
-          href="https://github.com/The-Regulation-Reckoning"
+          href="https://github.com/ChainMind-Lab/The-Regulation-Reckoning"
           target="_blank"
           rel="noreferrer"
         >
-          View on GitHub
+          View source
         </a>
       </div>
     </header>

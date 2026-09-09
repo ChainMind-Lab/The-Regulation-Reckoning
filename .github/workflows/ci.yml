@@ -8,7 +8,7 @@ on:
 
 jobs:
   frontend:
-    name: Frontend — typecheck, build, test
+    name: Frontend — format, lint, typecheck, build, test, audit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,7 +18,13 @@ jobs:
           node-version: 22
           cache: npm
 
-      - run: npm ci --legacy-peer-deps
+      - run: npm ci
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
 
       - name: Typecheck
         run: npx tsc --noEmit
@@ -29,8 +35,11 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: Dependency audit
+        run: npm audit --audit-level=high
+
   backend:
-    name: Backend — typecheck, build, test
+    name: Backend — format, lint, typecheck, build, test, audit
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -46,14 +55,26 @@ jobs:
 
       - run: npm ci
 
+      - name: Format check
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
+
       - name: Typecheck
-        run: npx tsc --noEmit
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
 
       - name: Test
         run: npm test
 
+      - name: Dependency audit
+        run: npm audit --audit-level=high
+
   contracts:
-    name: Contracts — Soroban (Rust)
+    name: Contracts — Soroban fmt, clippy, tests, WASM build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -61,7 +82,8 @@ jobs:
       - name: Install Rust + WASM target
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: wasm32-unknown-unknown
+          targets: wasm32v1-none
+          components: rustfmt, clippy
 
       - name: Cache cargo
         uses: actions/cache@v4
@@ -72,6 +94,18 @@ jobs:
             contracts/bounty/target
           key: cargo-${{ hashFiles('contracts/bounty/Cargo.toml') }}
 
-      - name: Run contract tests
+      - name: Format check
+        working-directory: contracts/bounty
+        run: cargo fmt --check
+
+      - name: Clippy
+        working-directory: contracts/bounty
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Test
         working-directory: contracts/bounty
         run: cargo test
+
+      - name: Build release WASM
+        working-directory: contracts/bounty
+        run: cargo build --release --target wasm32v1-none
