@@ -1,0 +1,176 @@
+{
+  "uid": "regulation-reckoning",
+  "title": "Regulation Reckoning — Stellar Testnet",
+  "tags": ["stellar", "soroban", "regulation-reckoning"],
+  "timezone": "browser",
+  "editable": true,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": { "list": [] },
+  "annotations": { "list": [] },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Upstream health",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Soroban RPC up",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "red", "value": null },
+            { "color": "green", "value": 1 }
+          ] },
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+          ],
+          "unit": "none"
+        }
+      },
+      "targets": [
+        { "expr": "soroban_up", "legendFormat": "soroban" }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Horizon up",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "red", "value": null },
+            { "color": "green", "value": 1 }
+          ] },
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+          ]
+        }
+      },
+      "targets": [
+        { "expr": "horizon_up", "legendFormat": "horizon" }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Indexer up",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "red", "value": null },
+            { "color": "green", "value": 1 }
+          ] },
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+          ]
+        }
+      },
+      "targets": [
+        { "expr": "indexer_up", "legendFormat": "indexer" }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Bounties tracked",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "none", "color": { "mode": "fixed", "fixedColor": "blue" } }
+      },
+      "targets": [
+        { "expr": "bounties_tracked", "legendFormat": "bounties" }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Ledger gaps (total)",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "none", "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 1 },
+            { "color": "red", "value": 5 }
+          ] } }
+      },
+      "targets": [
+        { "expr": "indexer_ledger_gaps_total", "legendFormat": "gaps" }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Indexed events / sec",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 5 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "color": { "mode": "palette-classic" } }
+      },
+      "targets": [
+        { "expr": "rate(events_indexed_total[1m])", "legendFormat": "events/s" }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Soroban RPC latency (p95, ms)",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 5 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "ms", "color": { "mode": "palette-classic" } }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(soroban_request_duration_ms_bucket[5m])) by (le))",
+          "legendFormat": "p95"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "HTTP requests / sec by status",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 11 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "color": { "mode": "palette-classic" } }
+      },
+      "targets": [
+        { "expr": "sum by (status) (rate(http_requests_total[1m]))", "legendFormat": "{{status}}" }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Ingested records / sec by pipeline",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 11 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "color": { "mode": "palette-classic" } }
+      },
+      "targets": [
+        { "expr": "sum by (pipeline) (rate(ingest_records_total[5m]))", "legendFormat": "{{pipeline}}" }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "version": 1
+}

@@ -163,6 +163,7 @@ caller = bounty) and the bounty (admin + registry), and writes
 - [`docs/DATA.md`](./docs/DATA.md) — data-ingestion pipeline, validation, and analytics
 - [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md) — Testnet deployment + live addresses
 - [`docs/SECURITY.md`](./docs/SECURITY.md) — threat model, secrets, hardening
+- [`docs/MONITORING.md`](./docs/MONITORING.md) — /metrics, Prometheus, Grafana
 - [`docs/CONTRIBUTOR_GUIDE.md`](./docs/CONTRIBUTOR_GUIDE.md) — how to contribute
 - [`docs/AUDIT.md`](./docs/AUDIT.md) — prototype→production audit findings
 

@@ -72,6 +72,13 @@ secrets handling, transport, contract hardening, and the checks enforced in CI.
 - DB-failure rollback: a failed insert rolls back the batch without corrupting the
   cursor. (14 indexer tests, including injected RPC/DB failures.)
 
+## Monitoring
+
+- `GET /metrics` exposes Prometheus text metrics; `monitoring/` ships a Prometheus
+  + Grafana stack provisioned via docker-compose (`docs/MONITORING.md`).
+- Grafana runs with sign-up disabled; set `GRAFANA_ADMIN_PASSWORD` and never
+  commit a real password.
+
 ## CI security checks
 
 `.github/workflows/ci.yml` runs for every push/PR:

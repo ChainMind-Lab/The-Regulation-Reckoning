@@ -38,8 +38,9 @@ Status key: ✅ implemented · 🚧 in progress · 🔲 planned
 ## Phase 3 — Hardening and scale 🚧
 
 - ✅ Metrics endpoint (`GET /metrics`); contract/registry/network gauges published.
-- 🚧 Prometheus/Grafana dashboards over `/metrics` (endpoint ready; dashboards not
-  yet shipped in-repo).
+- ✅ Prometheus + Grafana stack shipped in-repo (`monitoring/`): provisioned
+  datasource + dashboard covering upstream health, indexer throughput, Soroban
+  latency, HTTP status, and ingestion rates (`docs/MONITORING.md`).
 - ✅ On-chain verification panel: deployed contract IDs, admin, network, and
   successful transaction history with copy buttons and explorer links.
 - ✅ Frontend wallet hardening: wrong-network detection, disconnection, copyable
