@@ -7,6 +7,20 @@ as the verifiable source of truth.
 [![CI](https://github.com/ChainMind-Lab/The-Regulation-Reckoning/actions/workflows/ci.yml/badge.svg)](https://github.com/ChainMind-Lab/The-Regulation-Reckoning/actions/workflows/ci.yml)
 [![Soroban SDK 27](https://img.shields.io/badge/Soroban-SDK%2027-rust)](./contracts)
 
+## Live demo
+
+A hosted instance of the dashboard is running against the live Testnet deployment:
+
+- **Frontend:** https://crispy-palm-tree-6vggrx996gvqfxxjx-4173.app.github.dev
+- **Backend API:** https://crispy-palm-tree-6vggrx996gvqfxxjx-3001.app.github.dev
+  (`/health`, `/api/contract`, `/api/bounties`, `/api/events`, `/api/policies`, `/api/analytics`)
+
+The frontend is served from a GitHub Codespace with public port forwarding; the
+backend runs the committed code against the deployed contract above, with the
+Soroban event indexer enabled. Connect the Freighter wallet to fund or release a
+bounty live. The URL is valid while the codespace is running — see
+[`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md#live-demo) to host it yourself.
+
 ## What this is
 
 A production-oriented Stellar/Soroban application (not a prototype):

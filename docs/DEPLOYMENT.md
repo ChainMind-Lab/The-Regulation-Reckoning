@@ -26,6 +26,44 @@ These three hashes are the tail of the full proof chain exercised by
 `backend/e2e/testnet-e2e.mjs`: funder account → trustline → mint → build/sign/submit
 create → event indexed → dashboard → admin release → event indexed → dashboard.
 
+## Live demo
+
+The dashboard is hosted with public port forwarding from a GitHub Codespace:
+
+- Frontend: `https://crispy-palm-tree-6vggrx996gvqfxxjx-4173.app.github.dev`
+- Backend API: `https://crispy-palm-tree-6vggrx996gvqfxxjx-3001.app.github.dev`
+
+The backend runs the committed code with `BOUNTY_CONTRACT_ID` / `DEMO_TOKEN_ID` /
+`BOUNTY_ADMIN_ADDRESS` set to the live deployment above and `INDEXER_ENABLED=true`;
+the frontend is the Vite production build with `VITE_API_URL` set to the public
+backend URL. The indexer has already ingested the full on-chain history of the
+contract (all `bounty_created` / `bounty_released` / `bounty_reclaimed` events),
+so the dashboard shows real transactions — not seeds.
+
+### Host it yourself (Codespaces or any host)
+
+```bash
+# 1. Run the backend against the live Testnet deployment
+cd backend && npm ci && npm run build
+BOUNTY_CONTRACT_ID=CC2YEX6U7HV7L7L45HVOLVWGN2POARLPS3XICZS6KQH5Y52OTAHK7LVY \
+DEMO_TOKEN_ID=CCOAF5DIHLO4457S6EGQYSLXGGDRQPTO42DU6N5KVH4M2MSA2VDW2NB4 \
+BOUNTY_ADMIN_ADDRESS=GBRVOQSLP32BGOCYA56DCTM5PUQWW7YLBBAKVXBHDTJ6SNKVLGMWFRQI \
+FRONTEND_URL=<your-frontend-origin> node dist/server.js
+
+# 2. Build + serve the frontend pointed at the public backend
+VITE_API_URL=https://<your-host>/ npm run build
+npx vite preview --port 4173 --host 0.0.0.0
+```
+
+In a Codespace, make the ports public so the `.app.github.dev` URLs are reachable:
+
+```bash
+gh codespace ports visibility 3001:public 4173:public
+```
+
+Note: `.app.github.dev` URLs live for as long as the codespace runs; for an
+always-on demo, deploy `docker compose up` to any host (see below).
+
 ## Reproduce the deployment
 
 Prerequisites: Rust with the `wasm32v1-none` target, a `stellar-cli` binary, and Node ≥ 22.
