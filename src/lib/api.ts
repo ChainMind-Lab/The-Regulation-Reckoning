@@ -346,3 +346,100 @@ export function buildVoteDispute(
 }
 
 export { API_URL };
+
+// ── Server-sent events: live contract-event notifications ─────────
+
+/**
+ * Connect to the SSE feed of newly indexed contract events.
+ *
+ * Events are best-effort notifications. The dashboard uses them as a hint to
+ * refresh, not as the only source of truth.
+ */
+export interface SseEvent {
+  id: string;
+  data: string;
+}
+
+export interface SseClient {
+  close: () => void;
+}
+
+/**
+ * Create an SSE connection that automatically reconnects on error/disconnect.
+ *
+ * `onEvent` receives the event id of each newly indexed contract event. `null`
+ * ids are keepalives / control frames and are ignored.
+ */
+export function autoSse(
+  onEvent: (id: string) => void,
+  onClosed?: () => void,
+  baseUrl?: string,
+): SseClient {
+  let controller: AbortController | null = null;
+  let retryMs = 1000;
+
+  function connect() {
+    if (controller) controller.abort();
+    controller = new AbortController();
+    const url = `${baseUrl ?? API_URL}/api/events/stream`;
+    const req = new Request(url, {
+      signal: controller.signal,
+      headers: { 'Accept': 'text/event-stream' },
+    });
+    fetch(req)
+      .then((res) => {
+        if (!res.ok) {
+          retryMs = Math.min(30_000, retryMs * 2);
+          setTimeout(connect, retryMs);
+          return;
+        }
+        const reader = res.body?.getReader();
+        if (!reader) {
+          retryMs = Math.min(30_000, retryMs * 2);
+          setTimeout(connect, retryMs);
+          return;
+        }
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        (function read() {
+          reader
+            .read()
+            .then(({ done, value }) => {
+              if (done) {
+                retryMs = 1000;
+                setTimeout(connect, 1000);
+                return;
+              }
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split('\n');
+              buffer = lines.pop() ?? '';
+              for (const line of lines) {
+                if (line.startsWith('id: ')) {
+                  const id = line.slice(4).trim();
+                  if (id) onEvent(id);
+                }
+              }
+              read();
+            })
+            .catch(() => {
+              retryMs = Math.min(30_000, retryMs * 2);
+              setTimeout(connect, retryMs);
+            });
+        })();
+      })
+      .catch(() => {
+        retryMs = Math.min(30_000, retryMs * 2);
+        setTimeout(connect, retryMs);
+      });
+  }
+
+  connect();
+  return {
+    close() {
+      controller?.abort();
+      retryMs = Infinity;
+      onClosed?.();
+    },
+  };
+}

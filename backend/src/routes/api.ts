@@ -51,7 +51,11 @@ import {
   normalizeOnChainReputation,
   reputationCount,
 } from '../services/reputation';
-import { indexOnce } from '../services/indexer';
+import { indexOnce, getLastSseEventId } from '../services/indexer';
+import {
+  type AuditAction,
+  recordAudit,
+} from '../services/audit';
 import { ApiError } from '../middleware/error';
 import { logger } from '../logger';
 
@@ -900,9 +904,12 @@ router.post(
     if (!signedXdr || signedXdr.length < 64) {
       throw new ApiError('A signed transaction XDR is required', 400, 'BAD_XDR');
     }
+    let result:
+      | { hash: string; status: string; explorerUrl?: string }
+      | { hash: string; status: string };
     try {
-      const result = await submitSignedTransaction(signedXdr);
-      res.json({ ...result, explorerUrl: explorerTxUrl(result.hash) });
+      const submit = await submitSignedTransaction(signedXdr);
+      result = { ...submit, explorerUrl: explorerTxUrl(submit.hash) };
       // Kick an immediate indexer pass so the dashboard reflects the change.
       if (isContractConfigured()) {
         indexOnce().catch(() => undefined);
@@ -911,9 +918,19 @@ router.post(
       if (err instanceof SorobanError) throw err;
       throw new ApiError(`Failed to submit transaction: ${String(err)}`, 502, 'SUBMIT_FAILED');
     }
+    recordAudit(
+      'tx.submit',
+      'wallet',
+      result.status,
+      {
+        object_type: 'transaction',
+        object_id: result.hash,
+        tx_hash: result.hash,
+      },
+    ).catch((err) => logger.warn('admin audit tx.submit failed', { err: String(err) }));
+    res.json(result);
   }),
 );
-
 // ── Ops ───────────────────────────────────────────────────────────
 
 // POST /api/ingest/run — manually trigger the ingestion pipelines
@@ -938,5 +955,167 @@ router.post(
 function onChainConfirmed(verified: boolean): 'stellar' | 'index' {
   return verified ? 'stellar' : 'index';
 }
+
+// ── Server-sent events: new contract events as the indexer persists them ──
+
+const SSE_KEEPALIVE_MS = 15_000;
+
+/**
+ * GET /api/events/stream — SSE feed of newly indexed contract events.
+ *
+ * Clients reconnect using the last event id they saw; missed events between
+ * reconnects are intentionally skipped (the indexer guarantees ordering and
+ * idempotent persistence), and clients should refresh missing ranges via the
+ * paginated /api/events endpoint.
+ *
+ * This is a best-effort notification channel, not a durable subscription:
+ * network drops, proxies, or client disconnects can lose events. The dashboard
+ * treats it as a hint to refresh, not as the only source of truth.
+ */
+router.get('/events/stream', (_req: Request, res: Response): void => {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache, no-transform',
+    'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  });
+  let closed = false;
+  let heartbeat: NodeJS.Timeout | null = null;
+
+  const send = (data: string) => {
+    if (closed) return;
+    try {
+      res.write(`id: ${data}\n\n`);
+    } catch {
+      closed = true;
+    }
+  };
+
+  const keepalive = () => {
+    if (closed) return;
+    try {
+      res.write(': keepalive\n\n');
+    } catch {
+      closed = true;
+    }
+  };
+
+  heartbeat = setInterval(keepalive, SSE_KEEPALIVE_MS);
+
+  const cleanup = () => {
+    closed = true;
+    if (heartbeat) {
+      clearInterval(heartbeat);
+      heartbeat = null;
+    }
+  };
+
+  res.on('close', cleanup);
+  res.on('error', () => {
+    closed = true;
+  });
+
+  // Immediately advertise where we will resume from if the client reconnects.
+  const resumeId = getLastSseEventId() ?? '';
+  try {
+    res.write(`id: ${resumeId}\n\n`);
+  } catch {
+    closed = true;
+    return;
+  }
+
+  // Best-effort live push: when a new event is published, push its id.
+  // If the client missed it, it can reconnect using that id.
+  const unsubscribe = eventsBus$.subscribe((eventId) => {
+    if (!eventId) return;
+    send(eventId);
+  });
+
+  res.on('close', unsubscribe);
+  res.on('error', unsubscribe);
+});
+
+// Lightweight broadcaster for SSE live pushes.
+let eventsBus$: { subscribe: (fn: (eventId: string | null) => void) => void; next: (eventId: string | null) => void };
+
+function getEventsBus$() {
+  if (!eventsBus$) {
+    let listeners: Array<(eventId: string | null) => void> = [];
+    eventsBus$ = {
+      subscribe(fn) {
+        listeners.push(fn);
+        return () => {
+          listeners = listeners.filter((l) => l !== fn);
+        };
+      },
+      next(eventId) {
+        for (const fn of listeners) fn(eventId);
+      },
+    };
+  }
+  return eventsBus$;
+}
+
+/** Publish the id of a newly indexed event to any connected SSE clients. */
+export function publishNewEventId(eventId: string | null): void {
+  getEventsBus$().next(eventId);
+}
+
+// Wire the indexer -> SSE bridge once at module load.
+(function wireSseBridge() {
+  const indexer = require('../services/indexer');
+  const original = indexer.publishSseEventId;
+  indexer.publishSseEventId = (eventId: string | null) => {
+    original(eventId);
+    publishNewEventId(eventId);
+  };
+})();
+
+// ── Admin: audit trail & reindex control ────────────────────────────
+
+// GET /api/admin/audit — recent admin actions (append-only log)
+router.get(
+  '/admin/audit',
+  asyncHandler(async (req, res) => {
+    if (config.adminToken && req.headers.authorization !== `Bearer ${config.adminToken}`) {
+      throw new ApiError('Unauthorized', 401, 'UNAUTHORIZED');
+    }
+    const action = req.query.action
+      ? (req.query.action as typeof import('../services/audit').AuditAction)
+      : undefined;
+    res.json({
+      generatedAt: new Date().toISOString(),
+      total: auditCount(),
+      entries: listAudit({
+        action,
+        limit: intQuery(req.query.limit, 100, 1, 500),
+        before: req.query.before ? String(req.query.before) : undefined,
+      }),
+    });
+  }),
+);
+
+// POST /api/admin/reindex — one-off indexer pass (admin-auth gated)
+router.post(
+  '/admin/reindex',
+  asyncHandler(async (req, res) => {
+    if (config.adminToken && req.headers.authorization !== `Bearer ${config.adminToken}`) {
+      throw new ApiError('Unauthorized', 401, 'UNAUTHORIZED');
+    }
+    const before = auditCount();
+    const inserted = await indexOnce();
+    recordAudit(
+      'admin.reindex',
+      'operator',
+      'ok',
+      {
+        object_type: 'indexer',
+        object_id: config.bountyContractId,
+        detail: `inserted=${inserted}; before=${before}`,
+      },
+    ).catch((err) => logger.warn('admin audit admin.reindex failed', { err: String(err) }));
+    res.json({ status: 'ok', inserted, timestamp: new Date().toISOString() });
+  }),
+);
 
 export default router;

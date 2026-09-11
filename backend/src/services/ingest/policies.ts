@@ -21,6 +21,7 @@ import {
   detectRegulationChanges,
   type RegulationSnapshot,
 } from '../regulations';
+import { recordAudit } from '../audit';
 
 export const POLICY_CATEGORIES = [
   'stablecoin-regulation',
@@ -300,6 +301,11 @@ export async function ingestPolicies(): Promise<{
   );
   const count = persistPolicies(classified, detection.versions);
   recordIngestRun('policies', 'success', count);
+  recordAudit('ingest.policies', 'system', String(count), {
+    object_type: 'pipeline',
+    object_id: 'policies',
+    detail: `versionsCreated=${detection.versionsCreated}; alertsRaised=${detection.alertsRaised}`,
+  }).catch((err) => logger.warn('admin audit ingest.policies failed', { err: String(err) }));
   logger.info('ingest.policies: done', {
     records: count,
     versionsCreated: detection.versionsCreated,

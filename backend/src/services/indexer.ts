@@ -160,6 +160,8 @@ export function persistEvents(events: SorobanContractEvent[]): number {
   if (inserted > 0) {
     rebuildReadModels();
     metrics.inc('events_indexed_total', {}, inserted);
+    const newest = events[events.length - 1];
+    publishSseEventId(newest ? newest.id : null);
   }
   return inserted;
 }
@@ -787,14 +789,28 @@ export async function indexOnce(): Promise<number> {
 let timer: NodeJS.Timeout | null = null;
 
 /** Start the periodic indexer loop (idempotent). */
+let lastSseEventId: string | null = null;
+
 export function startIndexer(): void {
   if (timer || !config.indexerEnabled || !isContractConfigured()) return;
+  recordAudit('indexer.start', 'system', 'started', {
+    object_type: 'indexer',
+    object_id: config.bountyContractId,
+  }).catch((err) => logger.warn('admin audit indexer.start failed', { err: String(err) }));
   // Run once immediately, then on an interval.
   indexOnce().catch((err) => logger.error('indexer: initial pass failed', { err: String(err) }));
   timer = setInterval(() => {
     indexOnce().catch((err) => logger.error('indexer: pass failed', { err: String(err) }));
   }, config.indexerIntervalMs);
   if (timer.unref) timer.unref();
+}
+
+export function publishSseEventId(eventId: string | null): void {
+  lastSseEventId = eventId;
+}
+
+export function getLastSseEventId(): string | null {
+  return lastSseEventId;
 }
 
 export function stopIndexer(): void {
