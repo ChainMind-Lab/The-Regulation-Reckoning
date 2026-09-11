@@ -23,6 +23,10 @@ starts the whole platform **and** the observability stack together.
 Metrics register lazily: a family appears in `/metrics` once the code path that
 touches it has run (e.g. `horizon_up` after the first `/api/network` call).
 
+`http_requests_total{method,status}` is incremented for **every** response (success or
+failure) by a single middleware in `app.ts`. Histogram buckets are cumulative and always
+include an `+Inf` bucket, so `histogram_quantile()` (used by the p95 panel) is valid.
+
 ## Quick start
 
 ```bash

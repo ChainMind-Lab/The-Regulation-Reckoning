@@ -614,6 +614,15 @@ code {
   border-color: rgba(248, 113, 113, 0.4);
   color: var(--red);
 }
+.state-box.warning {
+  border-color: rgba(250, 204, 21, 0.4);
+  color: #facc15;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+}
 .state-hint {
   font-size: 0.82rem;
   color: var(--muted);
@@ -1031,6 +1040,257 @@ code {
   }
 }
 
+/* ── v2 panels (milestones, governance, reputation, jurisdictions, history) ── */
+.panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px 26px;
+  margin-bottom: 48px;
+}
+.panel-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.panel-controls .form-field {
+  margin-bottom: 0;
+}
+.panel-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.subheading {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 22px 0 10px;
+}
+.section-subheading {
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin: -14px 0 22px;
+}
+.muted {
+  color: var(--muted);
+}
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  border-radius: 20px;
+  padding: 2px 10px;
+  border: 1px solid var(--border);
+  color: var(--accent-2);
+  background: var(--accent-glow);
+}
+.badge-stellar,
+.badge-healthy {
+  color: var(--green);
+  background: rgba(52, 211, 153, 0.1);
+  border-color: rgba(52, 211, 153, 0.3);
+}
+.badge-index,
+.badge-disputed {
+  color: var(--yellow);
+  background: rgba(251, 191, 36, 0.1);
+  border-color: rgba(251, 191, 36, 0.3);
+}
+.badge-bronze {
+  color: #d9a066;
+  background: rgba(217, 160, 102, 0.12);
+  border-color: rgba(217, 160, 102, 0.35);
+}
+.badge-silver {
+  color: #cbd5e1;
+  background: rgba(203, 213, 225, 0.12);
+  border-color: rgba(203, 213, 225, 0.35);
+}
+.badge-gold {
+  color: var(--yellow);
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.35);
+}
+.badge-platinum {
+  color: var(--accent-2);
+  background: var(--accent-glow);
+  border-color: var(--border-bright);
+}
+
+/* Milestone editor */
+.milestone-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+  max-width: 620px;
+}
+.milestone-editor-row {
+  display: grid;
+  grid-template-columns: 1fr 120px auto;
+  gap: 8px;
+  align-items: center;
+}
+.milestone-editor-row input {
+  background: var(--bg-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 0.85rem;
+  font-family: inherit;
+}
+.milestone-editor-row input:focus {
+  outline: none;
+  border-color: var(--border-bright);
+}
+
+/* Reviewer / signer lists */
+.reviewer-list ul,
+.signer-list {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.reviewer-list li,
+.signer-list li {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+}
+.dispute-box,
+.diff-box {
+  margin-top: 18px;
+  border: 1px solid var(--border-bright);
+  border-radius: 12px;
+  padding: 16px 18px;
+  background: var(--bg-2);
+}
+
+/* Reputation */
+.reputation-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 12px;
+  background: var(--bg-2);
+}
+.reputation-score {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.reputation-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent-2);
+}
+.reputation-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin: 16px 0 8px;
+}
+.reputation-stats dt {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.reputation-stats dd {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* Jurisdiction comparison */
+.jurisdiction-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.check-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  user-select: none;
+}
+.check-chip input {
+  accent-color: var(--accent);
+}
+.comparison {
+  margin-top: 8px;
+  overflow-x: auto;
+}
+
+/* Alerts */
+.alert-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.alert {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 10px;
+  padding: 12px 16px;
+  background: var(--bg-2);
+}
+.alert-info {
+  border-left-color: var(--accent);
+}
+.alert-warning {
+  border-left-color: var(--yellow);
+}
+.alert-critical {
+  border-left-color: var(--red);
+}
+.alert.acknowledged {
+  opacity: 0.6;
+}
+.alert-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.badge-alert-info {
+  color: var(--accent-2);
+}
+.badge-alert-warning {
+  color: var(--yellow);
+  border-color: rgba(251, 191, 36, 0.35);
+}
+.badge-alert-critical {
+  color: var(--red);
+  border-color: rgba(248, 113, 113, 0.4);
+}
+
 /* ── Responsive ─────────────────────────────────────────────────── */
 @media (max-width: 900px) {
   .analytics-grid {
@@ -1044,6 +1304,12 @@ code {
   .card-grid-2,
   .skeleton-grid {
     grid-template-columns: 1fr;
+  }
+  .milestone-editor-row {
+    grid-template-columns: 1fr 90px auto;
+  }
+  .panel {
+    padding: 18px;
   }
   .nav-links {
     gap: 12px;

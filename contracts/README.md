@@ -29,13 +29,14 @@ recorded on-chain in a second contract — verifiable inter-contract communicati
 `ContributorsRegistry` accumulates per-contributor payout stats:
 
 ```
-init(allowed)    →  one-time bootstrap: the only address allowed to call `record`
+init(admin, allowed_caller)  →  one-time bootstrap: admin (retained for future ops)
+                               and the only contract allowed to call `record`
 record(contributor, issue_id, amount)  →  requires the allowed caller's auth (event:
                                            contributor_recorded)
 stats(address)  →  { count, total } earned so far
 ```
 
-Only the bounty contract (set as `allowed` at init) can write; anyone can read.
+Only the bounty contract (set as `allowed_caller` at init) can write; anyone can read.
 
 The backend exposes the registry stats live via `GET /api/contributors/:address`.
 
@@ -56,14 +57,14 @@ cargo install --locked stellar-cli --features opt
 
 ```bash
 cd contracts/bounty
-cargo test                                              # 21 unit tests (incl. inter-contract)
+cargo test                                              # 47 unit tests (milestones, reviews, disputes, multisig, inter-contract)
 cargo fmt --check
 cargo clippy --all-targets -- -D warnings
 cargo build --release --target wasm32v1-none            # production WASM
 # Output: target/wasm32v1-none/release/regulation_reckoning_bounty.wasm
 
 cd contracts/contributors
-cargo test                                              # 7 unit tests
+cargo test                                              # 18 unit tests (incl. reputation)
 cargo fmt --check
 cargo clippy --all-targets -- -D warnings
 cargo build --release --target wasm32v1-none            # production WASM
@@ -79,52 +80,35 @@ cargo build --release --target wasm32v1-none            # production WASM
 | Demo token (RRD SAC) | `CB7NFW2WD3FXKBYANZX7J3FO6PBST2H3IE6SPHXHSWIQESII2P2A6Y6P` |
 | Admin | `GB2OVPTEO2BYRRRRWNRPZZOC3VW77IQDXJPBY2WYV2MXSU7C5HQDZ6E6` |
 
-### Deploy to Testnet (manual)
+### Deploy to Testnet
+
+The recommended path is the automated script at the repo root, which performs the whole
+sequence (build both WASMs → fund a fresh account → deploy both contracts + the RRD
+token → init the registry → init the bounty → write `backend/.env.deployed`):
 
 ```bash
-For the reproducible full sequence (both contracts + init + env file), run
-`scripts/deploy-testnet.sh` from the repo root. Manual equivalent:
+./scripts/deploy-testnet.sh
+```
+
+See [`docs/DEPLOYMENT.md`](../docs/DEPLOYMENT.md) for the recorded deployment and the
+manual equivalent. If you do deploy by hand, note the exact argument names:
 
 ```bash
-# 1. deploy bounty + registry + token (record the returned IDs)
-stellar contract deploy --wasm <bounty.wasm> --source <SECRET> \
+# deploy bounty + registry + the RRD SAC (record the returned IDs)
+stellar contract deploy --wasm <bounty.wasm> --source-account <SECRET> \
   --rpc-url https://soroban-testnet.stellar.org --network-passphrase "Test SDF Network ; September 2015"
-stellar contract deploy --wasm <registry.wasm> --source <SECRET> \
+stellar contract deploy --wasm <registry.wasm> --source-account <SECRET> \
   --rpc-url https://soroban-testnet.stellar.org --network-passphrase "Test SDF Network ; September 2015"
-stellar contract asset deploy --asset "RRD:<PUBLIC>" --source <SECRET> \
+stellar contract asset deploy --asset "RRD:<PUBLIC>" --source-account <SECRET> \
   --rpc-url https://soroban-testnet.stellar.org --network-passphrase "Test SDF Network ; September 2015"
 
-# 2. init registry (admin + allowed caller = bounty contract)
-stellar contract invoke --id <REGISTRY_ID> --source <SECRET> \
+# init registry (admin + allowed caller = bounty contract). NOTE: --allowed-caller
+stellar contract invoke --id <REGISTRY_ID> --source-account <SECRET> \
   --rpc-url https://soroban-testnet.stellar.org --network-passphrase "Test SDF Network ; September 2015" \
-  -- init --admin <PUBLIC> --allowed <BOUNTY_ID>
+  -- init --admin <PUBLIC> --allowed-caller <BOUNTY_ID>
 
-# 3. init bounty (admin + registry)
-stellar contract invoke --id <BOUNTY_ID> --source <SECRET> \
+# init bounty (admin + registry). The registry is Option<Address>, passed as a JSON string.
+stellar contract invoke --id <BOUNTY_ID> --source-account <SECRET> \
   --rpc-url https://soroban-testnet.stellar.org --network-passphrase "Test SDF Network ; September 2015" \
-  -- init --admin <PUBLIC> --registry <REGISTRY_ID>
+  -- init --admin <PUBLIC> --registry '"<REGISTRY_ID>"'
 ```
-
-### Deploy the demo token
-
-```bash
-stellar contract asset deploy \
-  --asset "RRD:<ISSUER_PUBLIC_KEY>" \
-  --source <YOUR_SECRET_KEY> \
-  --rpc-url https://soroban-testnet.stellar.org \
-  --network-passphrase "Test SDF Network ; September 2015"
-```
-
-### Initialise
-
-```bash
-stellar contract invoke \
-  --id <CONTRACT_ID> \
-  --source <ADMIN_SECRET_KEY> \
-  --rpc-url https://soroban-testnet.stellar.org \
-  --network-passphrase "Test SDF Network ; September 2015" \
-  -- init --admin <ADMIN_ADDRESS>
-```
-
-The entire sequence (build → fund → deploy contract + token → init) is automated by
-`scripts/deploy-testnet.sh` at the repo root — see `docs/DEPLOYMENT.md`.

@@ -16,6 +16,11 @@ import { randomUUID } from 'node:crypto';
 import { getDb } from '../../db';
 import { logger } from '../../logger';
 import { metrics } from '../../metrics';
+import {
+  contentHash,
+  detectRegulationChanges,
+  type RegulationSnapshot,
+} from '../regulations';
 
 export const POLICY_CATEGORIES = [
   'stablecoin-regulation',
@@ -174,12 +179,31 @@ export function loadPolicyDataset(): RawPolicyRecord[] {
 
 // ── Persist ───────────────────────────────────────────────────────
 
-export function persistPolicies(records: ClassifiedPolicyRecord[]): number {
+/** Convert a classified record into the snapshot shape used for versioning. */
+export function toSnapshot(r: ClassifiedPolicyRecord): RegulationSnapshot {
+  return {
+    title: r.title,
+    jurisdiction: r.jurisdiction,
+    category: r.category,
+    eventDate: r.eventDate,
+    severity: r.severity,
+    summary: r.summary,
+    sourceName: r.sourceName,
+    sourceUrl: r.sourceUrl,
+    impact: r.impact ?? [],
+    survivalSignals: r.survival_signals ?? [],
+  };
+}
+
+export function persistPolicies(
+  records: ClassifiedPolicyRecord[],
+  versions: Record<string, number> = {},
+): number {
   const db = getDb();
   const upsert = db.prepare(`
     INSERT INTO regulatory_events
-      (id, title, jurisdiction, category, event_date, severity, summary, source_name, source_url, ingested_at, ingestion_source, impact, survival_signals)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'dataset', ?, ?)
+      (id, title, jurisdiction, category, event_date, severity, summary, source_name, source_url, ingested_at, ingestion_source, impact, survival_signals, content_hash, version)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'dataset', ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       title = excluded.title,
       jurisdiction = excluded.jurisdiction,
@@ -191,7 +215,9 @@ export function persistPolicies(records: ClassifiedPolicyRecord[]): number {
       source_url = excluded.source_url,
       ingested_at = excluded.ingested_at,
       impact = excluded.impact,
-      survival_signals = excluded.survival_signals
+      survival_signals = excluded.survival_signals,
+      content_hash = excluded.content_hash,
+      version = excluded.version
   `);
   const now = new Date().toISOString();
   db.exec('BEGIN');
@@ -210,6 +236,8 @@ export function persistPolicies(records: ClassifiedPolicyRecord[]): number {
         now,
         JSON.stringify(r.impact ?? []),
         JSON.stringify(r.survival_signals ?? []),
+        contentHash(toSnapshot(r)),
+        versions[r.id] ?? 1,
       );
     }
     db.exec('COMMIT');
@@ -242,8 +270,20 @@ export function recordIngestRun(
   );
 }
 
-/** Run the full pipeline (load → validate → classify → persist). */
-export async function ingestPolicies(): Promise<{ records: number; errors: string[] }> {
+/**
+ * Run the full pipeline:
+ * load → validate → classify → detect changes → persist.
+ *
+ * Change detection runs against the append-only version history, so an
+ * unchanged dataset is a no-op and a changed one appends a revision + alert.
+ */
+export async function ingestPolicies(): Promise<{
+  records: number;
+  errors: string[];
+  versionsCreated: number;
+  alertsRaised: number;
+  changed: string[];
+}> {
   const started = Date.now();
   const raw = loadPolicyDataset();
   const errors: string[] = [];
@@ -255,8 +295,22 @@ export async function ingestPolicies(): Promise<{ records: number; errors: strin
     throw new Error(`Policy dataset validation failed:\n${errors.join('\n')}`);
   }
   const classified = classifyPolicyRecords(raw);
-  const count = persistPolicies(classified);
+  const detection = detectRegulationChanges(
+    classified.map((r) => ({ id: r.id, ...toSnapshot(r) })),
+  );
+  const count = persistPolicies(classified, detection.versions);
   recordIngestRun('policies', 'success', count);
-  logger.info('ingest.policies: done', { records: count, tookMs: Date.now() - started });
-  return { records: count, errors: [] };
+  logger.info('ingest.policies: done', {
+    records: count,
+    versionsCreated: detection.versionsCreated,
+    alertsRaised: detection.alertsRaised,
+    tookMs: Date.now() - started,
+  });
+  return {
+    records: count,
+    errors: [],
+    versionsCreated: detection.versionsCreated,
+    alertsRaised: detection.alertsRaised,
+    changed: detection.changed,
+  };
 }

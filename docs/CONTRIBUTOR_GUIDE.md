@@ -16,10 +16,10 @@ scripts/           deploy-testnet.sh (reproducible Testnet deployment)
 
 ## Areas and "done" definitions
 
-### Contract (`contracts/bounty/src/lib.rs`)
+### Contract (`contracts/bounty/src/lib.rs` and `contracts/contributors/src/lib.rs`)
 
 - Every public function handles auth, validation, and failure cases — mirror the
-  existing 19 tests.
+  existing 21 bounty tests and 7 registry tests.
 - Any state change emits a typed event (`#[contractevent]`) so indexers can derive
   state; extend `backend/src/services/indexer.ts` and the events table when the
   event set changes.

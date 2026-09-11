@@ -6,6 +6,7 @@ const TOPIC_LABELS: Record<string, string> = {
   bounty_released: 'Bounty released',
   bounty_reclaimed: 'Bounty reclaimed',
   admin_initialised: 'Contract initialised',
+  contributor_recorded: 'Contributor recorded',
 };
 
 function TxHash({ ev }: { ev: ContractEvent }) {

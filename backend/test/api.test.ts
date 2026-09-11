@@ -46,6 +46,15 @@ vi.mock('../src/services/soroban', () => ({
   }),
   isContractInitialised: vi.fn().mockResolvedValue(true),
   requireContractConfigured: vi.fn(),
+  readBountyV2: vi.fn().mockResolvedValue(null),
+  readSigners: vi.fn().mockResolvedValue({
+    signers: ['GB2OVPTEO2BYRRRRWNRPZZOC3VW77IQDXJPBY2WYV2MXSU7C5HQDZ6E6'],
+    threshold: 1,
+  }),
+  readProposal: vi.fn().mockResolvedValue(null),
+  readDispute: vi.fn().mockResolvedValue(null),
+  readReputation: vi.fn().mockResolvedValue(null),
+  readContributorStats: vi.fn().mockResolvedValue({ count: 2, total: '375' }),
 }));
 
 // Import after mocks are registered.
@@ -160,6 +169,27 @@ describe('GET /api/contract', () => {
     expect(res.status).toBe(200);
     expect(res.body.contractId).toBe('CB4OI57YRKLAIX2RGFS7DX3GIGEST4MSI447VAJPRCBCNFUHWLWLQLWT');
     expect(res.body.initialised).toBe(true);
+    expect(res.body.sorobanReachable).toBe(true);
+  });
+
+  it('still returns metadata when Soroban RPC is unreachable', async () => {
+    const { isContractInitialised } = await import('../src/services/soroban');
+    vi.mocked(isContractInitialised).mockRejectedValueOnce(new Error('rpc down'));
+    const res = await request(createApp()).get('/api/contract');
+    expect(res.status).toBe(200);
+    expect(res.body.configured).toBe(true);
+    expect(res.body.initialised).toBe(false);
+    expect(res.body.sorobanReachable).toBe(false);
+  });
+});
+
+describe('GET /metrics', () => {
+  it('counts successful responses, not only errors', async () => {
+    const app = createApp();
+    await request(app).get('/health');
+    const res = await request(app).get('/metrics');
+    expect(res.status).toBe(200);
+    expect(res.text).toMatch(/http_requests_total\{method="GET",status="200"\}/);
   });
 });
 
@@ -188,6 +218,14 @@ describe('GET /api/bounties/:issueId (on-chain verification)', () => {
     const res = await request(createApp()).get('/api/bounties/nope');
     expect(res.status).toBe(404);
     expect(res.body.code).toBe('BOUNTY_NOT_FOUND');
+  });
+
+  it('returns 502 (not 404) when the on-chain read itself fails', async () => {
+    const { readBounty } = await import('../src/services/soroban');
+    vi.mocked(readBounty).mockRejectedValueOnce(new Error('RPC unreachable'));
+    const res = await request(createApp()).get('/api/bounties/gh-2');
+    expect(res.status).toBe(502);
+    expect(res.body.code).toBe('VERIFY_FAILED');
   });
 });
 
@@ -227,6 +265,14 @@ describe('POST /api/tx/build', () => {
     const res = await request(createApp())
       .post('/api/tx/build')
       .send({ action: 'hack', source: 'GB2OVPTEO2BYRRRRWNRPZZOC3VW77IQDXJPBY2WYV2MXSU7C5HQDZ6E6' });
+    expect(res.status).toBe(400);
+    expect(res.body.code).toBe('BAD_ACTION');
+  });
+
+  it('rejects the privileged one-time init action', async () => {
+    const res = await request(createApp())
+      .post('/api/tx/build')
+      .send({ action: 'init', source: 'GB2OVPTEO2BYRRRRWNRPZZOC3VW77IQDXJPBY2WYV2MXSU7C5HQDZ6E6' });
     expect(res.status).toBe(400);
     expect(res.body.code).toBe('BAD_ACTION');
   });

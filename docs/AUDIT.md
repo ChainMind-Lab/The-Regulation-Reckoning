@@ -3,11 +3,13 @@
 Audit date: 2026-09-09
 Audit scope: entire repository (frontend, backend, Soroban contract, CI, docs, config, metadata).
 
-> **Re-verified against `main` (2026-09-09, later the same day):** all figures in
-> this document were re-confirmed on the current commit — `cargo test` 21+7
-> contract tests, `npm test` 30 (frontend) + 46 (backend), the full live Testnet
-> e2e (fresh create `8e04ed19…`, release `bfe1d5d2…`), and the live demo
-> endpoints. Nothing in this audit is stale relative to `main`.
+> **Re-verified against `main`:** the figures in this document were confirmed on the
+> commit that produced the recorded live Testnet transactions — `cargo test` 21+7
+> contract tests and the full live e2e (create `8e04ed19…`, release `bfe1d5d2…`).
+> The test counts have since grown (frontend and backend both gained tests after the
+> fixes listed below); see the current numbers in `README.md` / `CHANGELOG.md`.
+> This audit describes the original prototype→production upgrade, not the later
+> hardening pass.
 >
 > **Post-audit hardening (same day):** a second-engineer cold review of both
 > contracts found a checks-effects-interactions ordering issue in `create`/
@@ -41,7 +43,7 @@ its disposition.
 | 7 | `docs/ARCHITECTURE.md` references `content/` and `analysis/` layers | docs/ARCHITECTURE.md | Directories do not exist anywhere in the repo | Rewritten to describe the real architecture (frontend/backend/contracts/data) with a diagram |
 | 8 | Contributor guide references `content/chapters/` and `analysis/` ETL | docs/CONTRIBUTOR_GUIDE.md | Directories do not exist | Rewritten to describe real contribution areas |
 | 9 | ROADMAP "Phase 1–4" describing unreleased plans as status | ROADMAP.md | Template-style generic roadmap, no links to actual issues | Rewritten as a concrete roadmap tied to real implemented features |
-| 10 | `.env.example` starts with a stray `[TEMPLATE]` marker | .env.example | Leftover template artifact | Removed; file documented and validated by `backend/src/config.ts` |
+| 10 | `.env.example` starts with a stray `[TEMPLATE]` marker | .env.example, backend/.env.example | Leftover template artifacts | Removed from **both** files; deployment IDs unified on the canonical live deployment and `INDEXER_START_LEDGER` documented |
 | 11 | "View all 74k+ issues →" link to Drips Wave | src/App.tsx | Unverifiable count | Removed fabricated count; kept the Drips program link (project funding program) |
 | 12 | Backend `/api/wave` and `/api/issues` return static data | backend/src/routes/api.ts | Hardcoded responses | Now served from persisted, ingested data (issues + policies), with provenance (`source`) |
 | 13 | No event indexing / no dashboard of on-chain state | README "on-chain signal analysis" | Backend never read contract events; frontend never showed bounty state | Implemented: indexer polls RPC events → SQLite → `/api/bounties`, `/api/events` → dashboard UI |
@@ -58,7 +60,7 @@ its disposition.
 | # | Claim / gap | Disposition |
 |---|---|---|
 | 21 | No inter-contract communication | Added `contracts/contributors` registry (7 tests) wired into bounty `release` via `env.invoke_contract`; deployed + proven live (`contributor_recorded` event; `/api/contributors/:address` reads stats on-chain) |
-| 22 | Indexer lacked failure-path tests | Hardened: duplicate protection (unique constraint), cursor persistence + restart recovery, RPC-failure containment (bounded retries, `soroban_up` gauge), ledger-gap detection, DB-failure rollback; 14 indexer tests incl. injected RPC/DB failures |
+| 22 | Indexer lacked failure-path tests | Hardened: duplicate protection (events keyed by RPC event id, `ON CONFLICT DO NOTHING`), cursor persistence + restart recovery, RPC-failure containment (retry on next poll, `soroban_up` gauge), ledger-gap detection, DB-failure rollback; 15 indexer tests incl. injected RPC/DB failures |
 | 23 | No ecosystem-impact / survival-signal intelligence | Dataset enriched with curated `impact` + `survivalSignals` (reproducible script); analytics adds timeline, jurisdiction×category risk heat map, impact/survival aggregates, per-jurisdiction risk; API + dashboard expose all of it |
 | 24 | Frontend lacked verification panel, tx history, copy, wrong-network detection, skeletons, mobile CSS | Added: `VerificationPanel` (deployed IDs + admin + network + successful tx history with copy + explorer links), copy buttons everywhere, Freighter network check with wrong-network warning, skeleton loading, responsive breakpoints, timeline/heat map charts |
 | 25 | No secret scanning, SBOM, container scanning | CI now runs gitleaks, Trivy image + filesystem scans (SARIF → Security tab), CycloneDX SBOM uploads |
@@ -74,7 +76,18 @@ its disposition.
 - **Drips Wave 5 program participation** — this repository is part of the Stellar Drips Wave 5 program; program links and attribution retained (no fabricated stats).
 - **MIT license, code of conduct, issue/PR templates** — retained; PR template wording updated to the real repo structure.
 
-## C. Verification evidence
+## C. Known limitations (carried forward)
+
+The contracts deployed on Testnet are immutable, so the following hardening items are
+documented and tracked in `ROADMAP.md` rather than silently changed:
+
+- `reclaim` has no deadline (a funder can cancel before release).
+- Per-bounty/per-contributor state uses instance storage and TTL is never bumped.
+
+These do not affect the correctness of the recorded flows; they are the next contract
+revision's work and require a redeploy.
+
+## D. Verification evidence
 
 Every item above is backed by one of:
 

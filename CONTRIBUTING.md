@@ -5,8 +5,8 @@ Stellar Testnet. Read [`docs/CONTRIBUTOR_GUIDE.md`](./docs/CONTRIBUTOR_GUIDE.md)
 
 ## Contribution pathways
 
-- **Soroban contract** (`contracts/bounty`) — new contract features, hardening,
-  event schema changes. Rust + `soroban-sdk` 27.
+- **Soroban contracts** (`contracts/bounty`, `contracts/contributors`) — new contract
+  features, hardening, event schema changes. Rust + `soroban-sdk` 27.
 - **Backend** (`backend/`) — API routes, ingestion pipeline, event indexer,
   analytics, observability. TypeScript + Express + `node:sqlite`.
 - **Frontend** (`src/`) — dashboard components, wallet flows, data presentation.
@@ -34,9 +34,10 @@ Stellar Testnet. Read [`docs/CONTRIBUTOR_GUIDE.md`](./docs/CONTRIBUTOR_GUIDE.md)
 | Backend format/lint/typecheck | `cd backend && npm run format:check && npm run lint && npm run typecheck` |
 | Backend tests | `cd backend && npm test` |
 | Backend build | `cd backend && npm run build` |
-| Contract format | `cd contracts/bounty && cargo fmt --check` |
-| Contract lint | `cd contracts/bounty && cargo clippy --all-targets -- -D warnings` |
-| Contract tests | `cd contracts/bounty && cargo test` |
+| Bounty contract format | `cd contracts/bounty && cargo fmt --check` |
+| Bounty contract lint | `cd contracts/bounty && cargo clippy --all-targets -- -D warnings` |
+| Bounty contract tests | `cd contracts/bounty && cargo test` |
+| Registry contract check | `cd contracts/contributors && cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test` |
 
 CI additionally runs `npm audit --audit-level=high` on both Node packages.
 

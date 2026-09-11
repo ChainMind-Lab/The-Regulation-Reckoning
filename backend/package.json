@@ -4,7 +4,7 @@
   "private": true,
   "description": "Express API backend for The Regulation Reckoning — Soroban bounty platform (Stellar Testnet)",
   "engines": {
-    "node": ">=22.5.0"
+    "node": ">=22.13.0"
   },
   "scripts": {
     "dev": "ts-node-dev --respawn src/server.ts",

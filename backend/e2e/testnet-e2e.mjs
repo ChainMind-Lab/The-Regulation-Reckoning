@@ -122,7 +122,7 @@ async function invokeAndSubmit(contractId, fn, args, signer, label) {
   const { Operation, Account } = await import('@stellar/stellar-sdk');
   const tx = new TransactionBuilder(account, { fee: '100', networkPassphrase: NETWORK_PASSPHRASE })
     .addOperation(Operation.invokeHostFunction({ func: hostFn, source: signer.publicKey() }))
-    .setTimeout(0)
+    .setTimeout(180)
     .build();
   const sim = await server.simulateTransaction(tx);
   if (!sim || sim.error) throw new Error(`simulate ${fn} failed: ${sim?.error}`);

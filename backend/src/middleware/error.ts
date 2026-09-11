@@ -5,7 +5,6 @@
 
 import type { NextFunction, Request, Response } from 'express';
 import { logger } from '../logger';
-import { metrics } from '../metrics';
 import { SorobanError } from '../services/soroban';
 
 export class ApiError extends Error {
@@ -53,7 +52,8 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     });
   }
 
-  metrics.inc('http_requests_total', { method: req.method, status: String(status) });
+  // NOTE: request/status metrics are emitted centrally in app.ts so that
+  // successful and failed responses are counted from a single place.
   const body: Record<string, unknown> = { error: message, code };
   if (detail !== undefined && process.env.NODE_ENV !== 'production') body.detail = detail;
   res.status(status).json(body);

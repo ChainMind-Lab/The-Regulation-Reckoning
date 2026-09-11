@@ -28,6 +28,7 @@ function event(overrides: Partial<SorobanContractEvent> & { id: string }): Sorob
     ledger: 100,
     contractId: CONTRACT,
     topic: 'bounty_created',
+    topics: ['bounty_created'],
     issueId: 'gh-1',
     payload: { funder: FUNDER, token: TOKEN, amount: '250' },
     createdAt: '2026-09-09T10:00:00Z',
@@ -60,6 +61,27 @@ describe('persistEvents', () => {
   it('skips malformed payloads without crashing', () => {
     const bad = event({ id: 'bad', payload: {} as never });
     expect(() => persistEvents([bad])).not.toThrow();
+  });
+
+  it('stores registry (inter-contract) events without deriving a bounty', () => {
+    const REGISTRY = 'CC53MJDM5M76GMZONKC56ONW4MM74MX3KF4LSXMWTRE7W66RASDP4W7Q';
+    persistEvents([
+      event({
+        id: 'reg-1',
+        topic: 'contributor_recorded',
+        issueId: 'e2e-1',
+        contractId: REGISTRY,
+        payload: { contributor: FUNDER, issue_id: 'e2e-1', amount: '250', total: '250' },
+      }),
+    ]);
+    const db = getDb();
+    const stored = db
+      .prepare("SELECT topic, contract_id AS contractId FROM soroban_events WHERE id = 'reg-1'")
+      .get() as { topic: string; contractId: string };
+    expect(stored.topic).toBe('contributor_recorded');
+    expect(stored.contractId).toBe(REGISTRY);
+    const bounties = (db.prepare('SELECT COUNT(*) AS c FROM bounties').get() as { c: number }).c;
+    expect(bounties).toBe(0);
   });
 });
 

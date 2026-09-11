@@ -8,7 +8,6 @@
 
 import type { NextFunction, Request, Response } from 'express';
 import { config } from '../config';
-import { metrics } from '../metrics';
 
 interface Window {
   count: number;
@@ -36,7 +35,7 @@ export function rateLimit() {
     }
     window.count += 1;
     if (window.count > config.rateLimitMax) {
-      metrics.inc('http_requests_total', { method: req.method, status: '429' });
+      // 429 responses are counted by the central metrics middleware in app.ts.
       res.setHeader('Retry-After', String(Math.ceil((window.resetAt - now) / 1000)));
       res.status(429).json({
         error: 'Rate limit exceeded',

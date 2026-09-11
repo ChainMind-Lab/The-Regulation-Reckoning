@@ -3,13 +3,32 @@
  * indexer startup, then listen.
  */
 
+import type { Server } from 'node:http';
 import { createApp } from './app';
-import { getDb } from './db';
+import { closeDb, getDb } from './db';
 import { config } from './config';
 import { logger } from './logger';
 import { ingestPolicies } from './services/ingest/policies';
 import { ingestIssues } from './services/ingest/issues';
-import { startIndexer } from './services/indexer';
+import { startIndexer, stopIndexer } from './services/indexer';
+
+let server: Server | null = null;
+
+export function shutdown(reason: string): void {
+  logger.info('shutdown: draining', { reason });
+  stopIndexer();
+  const done = (): void => {
+    closeDb();
+    process.exit(0);
+  };
+  if (server) {
+    server.close(done);
+    // Don't hang forever on keep-alive connections.
+    setTimeout(done, 5_000).unref();
+  } else {
+    done();
+  }
+}
 
 async function main(): Promise<void> {
   getDb();
@@ -37,20 +56,14 @@ async function main(): Promise<void> {
   startIndexer();
 
   const app = createApp();
-  app.listen(config.port, () => {
+  server = app.listen(config.port, () => {
     logger.info('backend listening', { port: config.port, env: config.env });
   });
 }
 
 // Graceful shutdown.
-process.on('SIGTERM', () => {
-  logger.info('shutdown: SIGTERM received');
-  process.exit(0);
-});
-process.on('SIGINT', () => {
-  logger.info('shutdown: SIGINT received');
-  process.exit(0);
-});
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
 
 // In tests, importing server.ts would start listening; guard it.
 if (require.main === module) {

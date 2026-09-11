@@ -8,25 +8,38 @@ services:
       # Soroban bounty contract deployed on Stellar Testnet (see docs/DEPLOYMENT.md)
       BOUNTY_CONTRACT_ID: ${BOUNTY_CONTRACT_ID:-CB4OI57YRKLAIX2RGFS7DX3GIGEST4MSI447VAJPRCBCNFUHWLWLQLWT}
       DEMO_TOKEN_ID: ${DEMO_TOKEN_ID:-CB7NFW2WD3FXKBYANZX7J3FO6PBST2H3IE6SPHXHSWIQESII2P2A6Y6P}
-      CONTRIBUTOR_REGISTRY_ID: ${CONTRIBUTOR_REGISTRY_ID:-}
+      CONTRIBUTOR_REGISTRY_ID: ${CONTRIBUTOR_REGISTRY_ID:-CC53MJDM5M76GMZONKC56ONW4MM74MX3KF4LSXMWTRE7W66RASDP4W7Q}
       BOUNTY_ADMIN_ADDRESS: ${BOUNTY_ADMIN_ADDRESS:-GB2OVPTEO2BYRRRRWNRPZZOC3VW77IQDXJPBY2WYV2MXSU7C5HQDZ6E6}
       SOROBAN_RPC_URL: https://soroban-testnet.stellar.org
       HORIZON_URL: https://horizon-testnet.stellar.org
-      STELLAR_NETWORK_PASSPHRASE: "Test SDF Network ; September 2015"
+      STELLAR_NETWORK_PASSPHRASE: 'Test SDF Network ; September 2015'
+      # The compose frontend is served on :8080; allow that origin for CORS
+      # (requests are same-origin through nginx, so this is belt-and-braces).
+      FRONTEND_URL: http://localhost:8080
+      # First ledger to index events from (the live deployment's registry/bounty
+      # init ledgers). Without this the indexer only looks back ~1000 ledgers and
+      # the dashboard starts empty.
+      INDEXER_START_LEDGER: ${INDEXER_START_LEDGER:-4588860}
+      # nginx proxies /api to this service, so trust its X-Forwarded-For header.
+      TRUST_PROXY: 'true'
       ADMIN_TOKEN: ${ADMIN_TOKEN:-}
       LOG_LEVEL: info
     volumes:
       - trr-data:/app/data/db
     expose:
-      - "3001"
+      - '3001'
 
   frontend:
-    build: .
+    build:
+      context: .
+      args:
+        # Empty => same-origin requests, proxied by the bundled nginx config.
+        VITE_API_URL: ${VITE_API_URL:-}
     restart: unless-stopped
     depends_on:
       - backend
     ports:
-      - "8080:80"
+      - '8080:80'
 
   # Observability — Prometheus scrapes backend /metrics; Grafana renders the
   # provisioned dashboard (monitoring/grafana/dashboards).
@@ -37,7 +50,7 @@ services:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prom-data:/prometheus
     ports:
-      - "9090:9090"
+      - '9090:9090'
 
   grafana:
     image: grafana/grafana:11.3.1
@@ -45,7 +58,7 @@ services:
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
-      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_USERS_ALLOW_SIGN_UP: 'false'
     volumes:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
@@ -53,7 +66,7 @@ services:
     depends_on:
       - prometheus
     ports:
-      - "3000:3000"
+      - '3000:3000'
 
 volumes:
   trr-data:

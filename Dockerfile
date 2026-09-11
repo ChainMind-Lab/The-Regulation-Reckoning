@@ -5,8 +5,14 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
+# Optional build-time backend base URL. Empty (the default) makes the app call
+# the same origin, which is what the bundled nginx /api proxy expects.
+ARG VITE_API_URL=""
+ENV VITE_API_URL=${VITE_API_URL}
+
 COPY tsconfig.json vite.config.ts index.html ./
 COPY src ./src
+COPY public ./public
 RUN npm run build
 
 # ── Runtime stage ─────────────────────────────────────────────────

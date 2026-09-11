@@ -36,6 +36,9 @@ export const config = {
   env: process.env.NODE_ENV ?? 'development',
   frontendUrl: process.env.FRONTEND_URL ?? 'http://localhost:4173',
   adminToken: process.env.ADMIN_TOKEN ?? '',
+  // Trust X-Forwarded-For (set by the bundled nginx proxy). Required for the
+  // per-IP rate limiter to key on real client IPs instead of the proxy's.
+  trustProxy: boolEnv('TRUST_PROXY', false),
 
   // Database
   dbPath: process.env.DB_PATH ?? 'data/regulation-reckoning.db',

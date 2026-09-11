@@ -23,12 +23,17 @@ const CONTRACT = {
   configured: true,
   contractId: 'CB4OI57YRKLAIX2RGFS7DX3GIGEST4MSI447VAJPRCBCNFUHWLWLQLWT',
   tokenId: 'CB7NFW2WD3FXKBYANZX7J3FO6PBST2H3IE6SPHXHSWIQESII2P2A6Y6P',
-  registryId: 'CDEMO123REGISTRY456DEMO789REGISTRY012',
+  registryId: 'CC53MJDM5M76GMZONKC56ONW4MM74MX3KF4LSXMWTRE7W66RASDP4W7Q',
   admin: 'GB2OVPTEO2BYRRRRWNRPZZOC3VW77IQDXJPBY2WYV2MXSU7C5HQDZ6E6',
   network: 'Test SDF Network ; September 2015',
   rpcUrl: 'https://soroban-testnet.stellar.org',
   horizonUrl: 'https://horizon-testnet.stellar.org',
   initialised: true,
+  signers: [
+    'GB2OVPTEO2BYRRRRWNRPZZOC3VW77IQDXJPBY2WYV2MXSU7C5HQDZ6E6',
+    'GDQP2KPQGKIHYJGXNUIYOMHARUARCA7DJT5FO2FFOOKY3B2WSQHG4W37',
+  ],
+  signerThreshold: 2,
 };
 
 const BOUNTY: Bounty = {
@@ -38,6 +43,9 @@ const BOUNTY: Bounty = {
   token: 'CB7NFW2WD3FXKBYANZX7J3FO6PBST2H3IE6SPHXHSWIQESII2P2A6Y6P',
   amount: '250',
   released: false,
+  refunded: false,
+  releasedAmount: '0',
+  milestones: 2,
   createdTx: 'abc123',
   releasedTx: null,
   updatedAt: '2026-05-16T00:00:00Z',
@@ -46,7 +54,7 @@ const BOUNTY: Bounty = {
 };
 
 const EVENT: ContractEvent = {
-  id: 1,
+  id: 'evt-1',
   txHash: 'abc123def456',
   ledger: 19695405,
   contractId: 'CB4OI57YRKLAIX2RGFS7DX3GIGEST4MSI447VAJPRCBCNFUHWLWLQLWT',
@@ -221,7 +229,7 @@ describe('VerificationPanel', () => {
   it('lists indexed transactions with copy + explorer links', async () => {
     render(<VerificationPanel contract={CONTRACT} network={NETWORK} events={[EVENT]} />);
     expect(screen.getByText('Bounty created')).toBeInTheDocument();
-    fireEvent.click(screen.getByTestId('copy-tx-1'));
+    fireEvent.click(screen.getByTestId('copy-tx-evt-1'));
     await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith(EVENT.txHash));
   });
 
@@ -269,10 +277,21 @@ describe('BountyCard', () => {
 
 // ── BountyForm (wallet flow) ─────────────────────────────────────
 describe('BountyForm', () => {
-  it('runs the full create flow: build → sign → submit', async () => {
+  function renderForm(overrides: Partial<{ onDone: () => void }> = {}) {
+    return render(
+      <BountyForm
+        account={ACCOUNT}
+        contract={CONTRACT}
+        bounties={[BOUNTY]}
+        onDone={overrides.onDone ?? (() => undefined)}
+      />,
+    );
+  }
+
+  it('runs the full milestone-escrow fund flow: build → sign → submit', async () => {
     vi.spyOn(api, 'buildTransaction').mockResolvedValue({
       txXdr: 'AAAA…unsigned',
-      action: 'create',
+      action: 'createBounty',
       networkPassphrase: 'Test SDF Network ; September 2015',
     });
     vi.spyOn(wallet, 'signTransactionXdr').mockResolvedValue('AAAA…signed');
@@ -282,16 +301,22 @@ describe('BountyForm', () => {
       explorerUrl: 'https://stellar.expert/explorer/testnet/tx/deadbeef',
     });
     const onDone = vi.fn();
-    render(<BountyForm account={ACCOUNT} bounties={[BOUNTY]} onDone={onDone} />);
+    renderForm({ onDone });
 
     fireEvent.change(screen.getByTestId('create-issue'), { target: { value: 'repo#42' } });
-    fireEvent.change(screen.getByTestId('create-amount'), { target: { value: '250' } });
+    fireEvent.change(screen.getByTestId('milestone-title-0'), { target: { value: 'Draft' } });
+    fireEvent.change(screen.getByTestId('milestone-amount-0'), { target: { value: '100' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create bounty' }));
 
     await waitFor(() => expect(onDone).toHaveBeenCalled());
-    expect(api.buildTransaction).toHaveBeenCalledWith('create', ACCOUNT.address, {
+    expect(api.buildTransaction).toHaveBeenCalledWith('createBounty', ACCOUNT.address, {
+      funder: ACCOUNT.address,
+      token: CONTRACT.tokenId,
       issueId: 'repo#42',
-      amount: '250',
+      milestones: [
+        { title: 'Draft', amount: '100' },
+        { title: 'Final submission', amount: '150' },
+      ],
     });
     expect(wallet.signTransactionXdr).toHaveBeenCalledWith(
       'AAAA…unsigned',
@@ -301,26 +326,73 @@ describe('BountyForm', () => {
     expect(screen.getByText(/Transaction confirmed/)).toBeInTheDocument();
   });
 
-  it('requires a valid contributor address for release', async () => {
+  it('lets a funder add a milestone', () => {
     vi.spyOn(api, 'buildTransaction');
-    render(<BountyForm account={ACCOUNT} bounties={[BOUNTY]} onDone={() => undefined} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Release a bounty' }));
-    fireEvent.change(screen.getByTestId('release-contributor'), {
-      target: { value: 'not-an-address' },
+    renderForm();
+    fireEvent.click(screen.getByTestId('add-milestone'));
+    expect(screen.getByTestId('milestone-title-2')).toBeInTheDocument();
+  });
+
+  it('claims an open bounty as the connected account', async () => {
+    vi.spyOn(api, 'buildTransaction').mockResolvedValue({
+      txXdr: 'AAAA…unsigned',
+      action: 'claim',
+      networkPassphrase: 'Test SDF Network ; September 2015',
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Release bounty' }));
-    expect(screen.getByTestId('form-error')).toHaveTextContent(/valid Stellar G… address/);
-    expect(api.buildTransaction).not.toHaveBeenCalled();
+    vi.spyOn(wallet, 'signTransactionXdr').mockResolvedValue('AAAA…signed');
+    vi.spyOn(api, 'submitTransaction').mockResolvedValue({
+      status: 'SUCCESS',
+      hash: 'cafe',
+      explorerUrl: 'https://stellar.expert/explorer/testnet/tx/cafe',
+    });
+    renderForm();
+    fireEvent.click(screen.getByRole('button', { name: 'Claim a bounty' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Claim bounty' }));
+    await waitFor(() =>
+      expect(api.buildTransaction).toHaveBeenCalledWith('claim', ACCOUNT.address, {
+        issueId: 'repo#42',
+        contributor: ACCOUNT.address,
+      }),
+    );
   });
 
   it('surfaces build failures', async () => {
     vi.spyOn(api, 'buildTransaction').mockRejectedValue(new Error('Simulation failed'));
-    render(<BountyForm account={ACCOUNT} bounties={[BOUNTY]} onDone={() => undefined} />);
+    renderForm();
     fireEvent.change(screen.getByTestId('create-issue'), { target: { value: 'repo#42' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create bounty' }));
     await waitFor(() =>
       expect(screen.getByTestId('form-error')).toHaveTextContent(/Simulation failed/),
     );
+  });
+
+  it('requires an issue id and does not build a transaction when blank', () => {
+    vi.spyOn(api, 'buildTransaction');
+    renderForm();
+    fireEvent.change(screen.getByTestId('create-issue'), { target: { value: '   ' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create bounty' }));
+    expect(screen.getByTestId('form-error')).toHaveTextContent(/required/);
+    expect(api.buildTransaction).not.toHaveBeenCalled();
+  });
+
+  it('never builds a transaction for an out-of-range milestone amount', () => {
+    vi.spyOn(api, 'buildTransaction');
+    renderForm();
+    fireEvent.change(screen.getByTestId('create-issue'), { target: { value: 'repo#42' } });
+    // The number input enforces min=1 natively, so the browser blocks submit.
+    fireEvent.change(screen.getByTestId('milestone-amount-0'), { target: { value: '0' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create bounty' }));
+    expect(api.buildTransaction).not.toHaveBeenCalled();
+  });
+
+  it('rejects a milestone with no title', () => {
+    vi.spyOn(api, 'buildTransaction');
+    renderForm();
+    fireEvent.change(screen.getByTestId('create-issue'), { target: { value: 'repo#42' } });
+    fireEvent.change(screen.getByTestId('milestone-title-0'), { target: { value: '  ' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create bounty' }));
+    expect(screen.getByTestId('form-error')).toHaveTextContent(/needs a title/);
+    expect(api.buildTransaction).not.toHaveBeenCalled();
   });
 });
 
@@ -335,7 +407,7 @@ describe('EventsFeed', () => {
 
   it('copies the tx hash', async () => {
     render(<EventsFeed events={[EVENT]} />);
-    fireEvent.click(screen.getByTestId('copy-tx-1'));
+    fireEvent.click(screen.getByTestId('copy-tx-evt-1'));
     await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith(EVENT.txHash));
   });
 
@@ -383,6 +455,43 @@ describe('HeroSection', () => {
 
 // ── App (dashboard shell) ─────────────────────────────────────────
 describe('App', () => {
+  /** Mock the v2 panels so the dashboard test never touches the network. */
+  function mockSecondaryPanels() {
+    vi.spyOn(api, 'getMilestones').mockResolvedValue({
+      issueId: 'repo#42',
+      onChainVerified: true,
+      source: 'stellar',
+      quorum: 1,
+      reviewers: [],
+      milestones: [
+        {
+          index: 0,
+          title: 'Draft',
+          amount: '100',
+          settled: false,
+          releasedTx: null,
+          releasedUrl: null,
+        },
+      ],
+      releasedAmount: '0',
+      disputed: false,
+      disputes: [],
+    });
+    vi.spyOn(api, 'getSigners').mockResolvedValue({
+      signers: CONTRACT.signers,
+      threshold: CONTRACT.signerThreshold,
+    });
+    vi.spyOn(api, 'getProposals').mockResolvedValue([]);
+    vi.spyOn(api, 'getReputationLeaderboard').mockResolvedValue({
+      generatedAt: '2026-05-16T00:00:00Z',
+      total: 0,
+      entries: [],
+    });
+    vi.spyOn(api, 'getJurisdictions').mockResolvedValue([]);
+    vi.spyOn(api, 'getRegulationVersions').mockResolvedValue([]);
+    vi.spyOn(api, 'getAlerts').mockResolvedValue([]);
+  }
+
   it('shows a skeleton while loading', () => {
     vi.spyOn(api, 'getNetworkStatus').mockReturnValue(new Promise(() => undefined));
     vi.spyOn(api, 'getContractInfo').mockReturnValue(new Promise(() => undefined));
@@ -401,9 +510,29 @@ describe('App', () => {
     vi.spyOn(api, 'getEvents').mockResolvedValue([EVENT]);
     vi.spyOn(api, 'getPolicies').mockResolvedValue([POLICY]);
     vi.spyOn(api, 'getAnalytics').mockResolvedValue(ANALYTICS);
+    mockSecondaryPanels();
     render(<App />);
     await waitFor(() => expect(screen.getByText(/On-chain verification/)).toBeInTheDocument());
     expect(screen.getByText('Bounties on-chain')).toBeInTheDocument();
     expect(screen.getByText(/Contract events/)).toBeInTheDocument();
+    // Every v2 feature has a first-class section in the dashboard shell.
+    expect(screen.getByText(/Milestone escrow/)).toBeInTheDocument();
+    expect(screen.getByText('Multisig administration')).toBeInTheDocument();
+    expect(screen.getByText('Jurisdiction comparison')).toBeInTheDocument();
+    expect(screen.getByText(/Regulation change detection/)).toBeInTheDocument();
+    expect(screen.getByText(/Contributor & reviewer reputation/)).toBeInTheDocument();
+  });
+
+  it('renders the sections it can when one endpoint fails (no total blank-out)', async () => {
+    vi.spyOn(api, 'getNetworkStatus').mockResolvedValue(NETWORK);
+    vi.spyOn(api, 'getContractInfo').mockResolvedValue(CONTRACT);
+    vi.spyOn(api, 'getBounties').mockResolvedValue([BOUNTY]);
+    vi.spyOn(api, 'getEvents').mockResolvedValue([EVENT]);
+    vi.spyOn(api, 'getPolicies').mockResolvedValue([POLICY]);
+    vi.spyOn(api, 'getAnalytics').mockRejectedValue(new Error('Horizon unreachable'));
+    mockSecondaryPanels();
+    render(<App />);
+    await waitFor(() => expect(screen.getByText('Bounties on-chain')).toBeInTheDocument());
+    expect(screen.getByTestId('partial-error')).toHaveTextContent(/Some sections could not load/);
   });
 });

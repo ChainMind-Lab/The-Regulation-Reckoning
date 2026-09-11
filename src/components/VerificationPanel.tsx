@@ -1,8 +1,14 @@
 import { useState } from 'react';
 import type { ContractEvent, ContractInfo, NetworkStatus } from '../lib/types';
 
-/** Stellar Expert explorer base for Testnet — matches backend explorerTxUrl(). */
-const EXPLORER_CONTRACT = 'https://stellar.expert/explorer/testnet/contract';
+/**
+ * Stellar Expert explorer network segment, derived from the configured network
+ * passphrase — mirrors the backend's explorerTxUrl(). Previously hardcoded to
+ * testnet, which produced wrong links against a mainnet deployment.
+ */
+export function explorerNetwork(network: string | null | undefined): 'testnet' | 'public' {
+  return network && network.includes('Test') ? 'testnet' : 'public';
+}
 
 function CopyButton({ text, label }: { text: string; label: string }) {
   const [copied, setCopied] = useState(false);
@@ -61,6 +67,7 @@ const TOPIC_LABELS: Record<string, string> = {
   bounty_released: 'Bounty released',
   bounty_reclaimed: 'Bounty reclaimed',
   admin_initialised: 'Contract initialised',
+  contributor_recorded: 'Contributor recorded',
 };
 
 export default function VerificationPanel({
@@ -72,6 +79,10 @@ export default function VerificationPanel({
   network: NetworkStatus | null;
   events: ContractEvent[];
 }) {
+  const explorerContract = `https://stellar.expert/explorer/${explorerNetwork(
+    contract?.network,
+  )}/contract`;
+
   if (!contract?.configured) {
     return (
       <section className="verify-panel" id="verification">
@@ -94,17 +105,17 @@ export default function VerificationPanel({
         <AddressRow
           label="Bounty contract"
           value={contract.contractId}
-          explorerHref={`${EXPLORER_CONTRACT}/${contract.contractId ?? ''}`}
+          explorerHref={`${explorerContract}/${contract.contractId ?? ''}`}
         />
         <AddressRow
           label="RRD token (SAC)"
           value={contract.tokenId}
-          explorerHref={`${EXPLORER_CONTRACT}/${contract.tokenId ?? ''}`}
+          explorerHref={`${explorerContract}/${contract.tokenId ?? ''}`}
         />
         <AddressRow
           label="Contributors registry"
           value={contract.registryId}
-          explorerHref={`${EXPLORER_CONTRACT}/${contract.registryId ?? ''}`}
+          explorerHref={`${explorerContract}/${contract.registryId ?? ''}`}
         />
         <AddressRow label="Admin" value={contract.admin} />
         <div className="verify-row">

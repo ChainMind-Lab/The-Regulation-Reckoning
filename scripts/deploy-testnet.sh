@@ -45,6 +45,14 @@ RPC_URL="${SOROBAN_RPC_URL:-https://soroban-testnet.stellar.org}"
 PASSPHRASE="${STELLAR_NETWORK_PASSPHRASE:-Test SDF Network ; September 2015}"
 FRIENDBOT_URL="${FRIENDBOT_URL:-https://friendbot.stellar.org}"
 
+# Latest ledger sequence from Soroban RPC (used as the indexer's start ledger
+# so a fresh backend indexes the full history of the contracts deployed here).
+rpc_latest_ledger() {
+  curl -sS -X POST "$RPC_URL" -H 'Content-Type: application/json' \
+    -d '{"jsonrpc":"2.0","id":1,"method":"getLatestLedger","params":{}}' \
+    | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{console.log(JSON.parse(s).result.sequence)}catch(e){console.log('0')}})"
+}
+
 echo "── Building bounty contract WASM ─────────────────────────────"
 (cd contracts/bounty && cargo build --release --target wasm32v1-none)
 WASM="contracts/bounty/target/wasm32v1-none/release/regulation_reckoning_bounty.wasm"
@@ -98,6 +106,14 @@ fi
 echo "── Funding via Friendbot ─────────────────────────────────────"
 curl -sS "${FRIENDBOT_URL}?addr=${PUBLIC}" >/dev/null || { echo "ERROR: friendbot failed" >&2; exit 1; }
 echo "Funded $PUBLIC (10,000 XLM)"
+
+echo "── Recording deployment ledger ───────────────────────────────"
+DEPLOY_LEDGER=$(rpc_latest_ledger)
+if [ -z "$DEPLOY_LEDGER" ] || [ "$DEPLOY_LEDGER" = "0" ]; then
+  DEPLOY_LEDGER=0
+  echo "WARNING: could not read the latest ledger; INDEXER_START_LEDGER will be 0" >&2
+fi
+echo "Indexer start ledger: $DEPLOY_LEDGER"
 
 echo "── Deploying bounty contract ─────────────────────────────────"
 BOUNTY_ID=$("$STELLAR" contract deploy \
@@ -169,6 +185,8 @@ BOUNTY_ADMIN_SECRET=$SECRET
 SOROBAN_RPC_URL=$RPC_URL
 HORIZON_URL=https://horizon-testnet.stellar.org
 STELLAR_NETWORK_PASSPHRASE=$PASSPHRASE
+# Ledger the contracts above were deployed at — lets the indexer backfill history.
+INDEXER_START_LEDGER=$DEPLOY_LEDGER
 EOF
 chmod 600 backend/.env.deployed
 
